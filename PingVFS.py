@@ -5,11 +5,26 @@ import time
 import json
 import requests
 import subprocess
-from playsound import playsound
+import platform
 from datetime import datetime
 from TelegramNotifier import TelegramNotifier
 
 MIN_JWT_LENGTH = 10
+
+def play_alert():
+    """Play an alert sound when a slot is found."""
+    try:
+        if platform.system() == "Windows":
+            import winsound
+            for _ in range(3):
+                winsound.Beep(1000, 500)
+                winsound.Beep(1500, 300)
+                winsound.Beep(2000, 500)
+        else:
+            # Linux/Mac fallback
+            os.system("echo -e '\\a'")
+    except Exception as e:
+        print(f"Could not play alert sound: {e}")
 
 class PingVFS:
     # default constructor
@@ -156,7 +171,7 @@ class PingVFS:
                         msg
                     ])
                     try:
-                        playsound(self.sound)
+                        play_alert()
                     except Exception as e:
                         print(f"Warning: could not play alert sound: {e}")
                     if self.telegram:
