@@ -656,6 +656,63 @@
     #meta { text-align: left; }
     #grid { grid-template-columns: 1fr; }
   }
+
+  /* ── Global Telegram Panel ── */
+  #global-telegram-panel {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    margin-bottom: 20px;
+    max-width: 1200px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+  .global-tg-header {
+    background: var(--surface2);
+    border-bottom: 1px solid var(--border);
+    border-radius: var(--radius) var(--radius) 0 0;
+    color: var(--text);
+    font-size: 14px;
+    font-weight: 600;
+    padding: 14px 20px;
+  }
+  .global-tg-body {
+    padding: 20px;
+  }
+  .global-tg-actions {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-top: 16px;
+  }
+
+  /* ── Section-level save row ── */
+  .section-save-row {
+    display: flex;
+    justify-content: flex-end;
+    padding: 14px 18px 16px;
+    border-top: 1px solid var(--border);
+    background: var(--surface);
+    margin-bottom: 16px;
+    border-radius: 0 0 10px 10px;
+    border-bottom: 1px solid var(--border);
+    border-left: 1px solid var(--border);
+    border-right: 1px solid var(--border);
+  }
+  .btn-section-save {
+    background: var(--blue);
+    border: none;
+    border-radius: 8px;
+    color: #fff;
+    cursor: pointer;
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 600;
+    padding: 10px 20px;
+    transition: opacity .15s;
+  }
+  .btn-section-save:hover { opacity: .85; }
+  .btn-section-save:disabled { opacity: .5; cursor: not-allowed; }
 </style>
 </head>
 <body>
@@ -713,6 +770,38 @@
 
 <!-- ═══════ SETTINGS PAGE ═══════ -->
 <div id="page-settings">
+
+  <!-- 📡 Global Telegram Ayarları (her zaman görünür) -->
+  <div id="global-telegram-panel">
+    <div class="global-tg-header">📡 Global Telegram Ayarları</div>
+    <div class="global-tg-body">
+      <div class="form-grid">
+        <div class="form-group" style="grid-column:1/-1">
+          <label>Telegram Etkin</label>
+          <div class="toggle-wrap">
+            <label class="toggle">
+              <input type="checkbox" id="g-tg-enabled" />
+              <span class="toggle-slider"></span>
+            </label>
+            <span class="toggle-label">Tüm ülkeler için Telegram bildirimleri gönder</span>
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Bot Token</label>
+          <input class="form-input" id="g-tg-bot_token" type="text" placeholder="123456:ABC-..." />
+        </div>
+        <div class="form-group">
+          <label>Chat ID</label>
+          <input class="form-input" id="g-tg-chat_id" type="text" placeholder="-100..." />
+        </div>
+      </div>
+      <div class="global-tg-actions">
+        <button class="btn-section-save" id="btn-save-global-tg" onclick="saveGlobalTelegram()">💾 Kaydet</button>
+        <button class="btn-tg-test" onclick="testGlobalTelegram()">📨 Test Mesajı Gönder</button>
+      </div>
+    </div>
+  </div>
+
   <div class="settings-layout">
 
     <!-- Sidebar -->
@@ -883,6 +972,11 @@
             </div>
           </div>
 
+          <!-- 💾 Giriş Ayarları Kaydet -->
+          <div class="section-save-row">
+            <button class="btn-section-save" id="btn-save-auth" onclick="saveAuthConfig()">💾 Giriş Ayarlarını Kaydet</button>
+          </div>
+
           <!-- 📡 API Ayarları -->
           <div class="form-section">
             <button class="section-toggle" onclick="toggleSection(this)">
@@ -964,35 +1058,15 @@
             </div>
           </div>
 
-          <!-- 📲 Telegram -->
+          <!-- 📲 Telegram (Global ayarlardan yönetilir) -->
           <div class="form-section">
             <button class="section-toggle" onclick="toggleSection(this)">
               📲 Telegram Ayarları <span class="chevron">▾</span>
             </button>
             <div class="section-body">
-              <div class="form-grid">
-                <div class="form-group" style="grid-column:1/-1">
-                  <label>Telegram Etkin</label>
-                  <div class="toggle-wrap">
-                    <label class="toggle">
-                      <input type="checkbox" id="p-tg-enabled" />
-                      <span class="toggle-slider"></span>
-                    </label>
-                    <span class="toggle-label">Telegram bildirimleri gönder</span>
-                  </div>
-                </div>
-                <div class="form-group">
-                  <label>Bot Token</label>
-                  <input class="form-input" id="p-tg-bot_token" type="text" placeholder="123456:ABC-..." />
-                </div>
-                <div class="form-group">
-                  <label>Chat ID</label>
-                  <input class="form-input" id="p-tg-chat_id" type="text" placeholder="-100..." />
-                </div>
-                <div class="form-group" style="grid-column:1/-1">
-                  <button class="btn-tg-test" onclick="testTelegram()">📨 Test Mesajı Gönder</button>
-                </div>
-              </div>
+              <p style="color:var(--muted);font-size:13px;padding:4px 0">
+                📡 Telegram ayarları sayfanın üstündeki <strong style="color:var(--text)">Global Telegram Ayarları</strong> panelinden yönetilmektedir. Tüm ülkeler için tek bir Telegram hesabı kullanılır.
+              </p>
             </div>
           </div>
 
@@ -1017,6 +1091,11 @@
                 </div>
               </div>
             </div>
+          </div>
+
+          <!-- 💾 Ping Ayarları Kaydet -->
+          <div class="section-save-row">
+            <button class="btn-section-save" id="btn-save-ping" onclick="savePingConfig()">💾 Ping Ayarlarını Kaydet</button>
           </div>
 
         </div><!-- /config-form-body -->
@@ -1077,7 +1156,7 @@ function showTab(name) {
   document.getElementById('page-settings').style.display  = name === 'settings' ? 'block' : 'none';
   document.getElementById('tab-monitor').classList.toggle('active',  name === 'monitor');
   document.getElementById('tab-settings').classList.toggle('active', name === 'settings');
-  if (name === 'settings') loadCountries();
+  if (name === 'settings') { loadCountries(); loadGlobalTelegram(); }
 }
 
 /* ═══════════════════════════════════════════════════════════
@@ -1538,11 +1617,6 @@ function populateForm(auth, ping) {
   setVal('p-paths-auth',   paths.auth   || '');
   setVal('p-paths-output', paths.output || '');
 
-  var tg = ping.telegram || {};
-  document.getElementById('p-tg-enabled').checked = !!tg.enabled;
-  setVal('p-tg-bot_token', tg.bot_token || '');
-  setVal('p-tg-chat_id',   tg.chat_id   || '');
-
   renderCentersList(ping.centers || []);
 }
 
@@ -1666,11 +1740,6 @@ function buildPing() {
     sound:                 document.getElementById('p-sound').value.trim(),
     delay_between_centers: parseInt(document.getElementById('p-delay_between_centers').value) || 3,
     delay_between_rounds:  parseInt(document.getElementById('p-delay_between_rounds').value)  || 30,
-    telegram: {
-      enabled:   document.getElementById('p-tg-enabled').checked,
-      bot_token: document.getElementById('p-tg-bot_token').value.trim(),
-      chat_id:   document.getElementById('p-tg-chat_id').value.trim(),
-    },
   };
 }
 
@@ -1683,6 +1752,105 @@ async function testTelegram() {
     else        showToast('❌ ' + (data.error   || 'Telegram hatası'), 'error');
   } catch(e) {
     showToast('❌ Telegram hatası: ' + e.message, 'error');
+  }
+}
+
+async function loadGlobalTelegram() {
+  try {
+    var res = await fetch('/api/config/telegram');
+    if (!res.ok) return;
+    var data = await res.json();
+    document.getElementById('g-tg-enabled').checked = !!data.enabled;
+    setVal('g-tg-bot_token', data.bot_token || '');
+    setVal('g-tg-chat_id',   data.chat_id   || '');
+  } catch(e) {
+    // Sessizce devam et — henüz config dosyası olmayabilir
+    console.error('Global Telegram config yüklenemedi:', e);
+  }
+}
+
+async function saveGlobalTelegram() {
+  var btn = document.getElementById('btn-save-global-tg');
+  btn.disabled = true;
+  btn.textContent = '⏳ Kaydediliyor…';
+  try {
+    var payload = {
+      enabled:   document.getElementById('g-tg-enabled').checked,
+      bot_token: document.getElementById('g-tg-bot_token').value.trim(),
+      chat_id:   document.getElementById('g-tg-chat_id').value.trim(),
+    };
+    var res  = await fetch('/api/config/telegram', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify(payload),
+    });
+    var data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Kayıt hatası');
+    showToast('✅ Telegram ayarları kaydedildi!', 'success');
+  } catch(e) {
+    showToast('❌ Kayıt hatası: ' + e.message, 'error');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '💾 Kaydet';
+  }
+}
+
+async function testGlobalTelegram() {
+  try {
+    var res  = await fetch('/api/config/telegram/test', { method: 'POST' });
+    var data = await res.json();
+    if (res.ok) showToast('✅ ' + (data.message || 'Test mesajı gönderildi!'), 'success');
+    else        showToast('❌ ' + (data.error   || 'Telegram hatası'), 'error');
+  } catch(e) {
+    showToast('❌ Telegram hatası: ' + e.message, 'error');
+  }
+}
+
+async function saveAuthConfig() {
+  if (!currentCountryCode) return;
+  var btn = document.getElementById('btn-save-auth');
+  btn.disabled = true;
+  btn.textContent = '⏳ Kaydediliyor…';
+  try {
+    var auth = buildAuth();
+    var res  = await fetch('/api/config/' + currentCountryCode + '/auth', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify(auth),
+    });
+    var data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Kayıt hatası');
+    showToast('✅ Giriş ayarları kaydedildi!', 'success');
+    loadCountries();
+  } catch(e) {
+    showToast('❌ Kayıt hatası: ' + e.message, 'error');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '💾 Giriş Ayarlarını Kaydet';
+  }
+}
+
+async function savePingConfig() {
+  if (!currentCountryCode) return;
+  var btn = document.getElementById('btn-save-ping');
+  btn.disabled = true;
+  btn.textContent = '⏳ Kaydediliyor…';
+  try {
+    var ping = buildPing();
+    var res  = await fetch('/api/config/' + currentCountryCode + '/ping', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify(ping),
+    });
+    var data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Kayıt hatası');
+    showToast('✅ Ping ayarları kaydedildi!', 'success');
+    loadCountries();
+  } catch(e) {
+    showToast('❌ Kayıt hatası: ' + e.message, 'error');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '💾 Ping Ayarlarını Kaydet';
   }
 }
 
@@ -1759,7 +1927,6 @@ async function createCountry() {
     centers: [],
     paths: { auth: './countries/' + code + '/auth.txt', output: './countries/' + code + '/output.txt' },
     sound: './alert.mp3', delay_between_centers: 3, delay_between_rounds: 30,
-    telegram: { enabled: true, bot_token: 'YOUR_TELEGRAM_BOT_TOKEN', chat_id: 'YOUR_TELEGRAM_CHAT_ID' },
   };
 
   try {
