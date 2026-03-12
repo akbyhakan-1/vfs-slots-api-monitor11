@@ -73,10 +73,9 @@ class AuthVFS:
             # Wait for Angular page to fully load (max 30 seconds)
             wait = WebDriverWait(driver, 30)
 
-            # Wait for email field to be present and interactable
-            email    = wait.until(EC.presence_of_element_located((By.XPATH, args["email_id"])))
+            # Wait for email field to be present
+            email = wait.until(EC.presence_of_element_located((By.XPATH, args["email_id"])))
             password = wait.until(EC.presence_of_element_located((By.XPATH, args["password_id"])))
-            submit   = wait.until(EC.element_to_be_clickable((By.XPATH, args["submit"])))
 
             print("Login form found, filling credentials...", flush=True)
         except Exception as e:
@@ -89,7 +88,22 @@ class AuthVFS:
         time.sleep(1)
         password.clear()
         password.send_keys(args["pass"])
-        time.sleep(self.args["avrg_delay"])
+        time.sleep(2)  # Wait for Angular to detect input and enable submit button
+
+        # Now wait for submit button to become clickable (it starts disabled)
+        try:
+            submit = WebDriverWait(driver, 10).until(
+                EC.element_to_be_clickable((By.XPATH, args["submit"]))
+            )
+        except Exception as e:
+            print(f"Warning: Submit button not clickable: {e}", flush=True)
+            # Try clicking anyway
+            try:
+                submit = driver.find_element(By.XPATH, args["submit"])
+            except Exception:
+                print("Warning: Submit button not found at all.", flush=True)
+                return False
+
         # Submit the form.
         print("Submitting login form...", flush=True)
         submit.click()

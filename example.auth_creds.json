@@ -3,7 +3,7 @@
     "email_id":"//*[@id='email']",
     "password_id":"//*[@id='password']",
     "ensure_login":"//*[contains(text(), 'Start New Booking')]",
-    "submit":"//button[contains(@class,'mat-mdc-raised-button')]",
+    "submit":"//button[contains(.,'Oturum')]",
     "otp_input":"//*[@id=\"mat-input-3\"]",
     "otp_submit":"//*[contains(text(), 'Oturum Aç')]",
     "cloudflare_checkbox":"//input[@type='checkbox']",
