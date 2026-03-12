@@ -17,10 +17,24 @@ class AuthVFS:
         self._otp_reader = None
 
     def create_driver(self):
+        self.safe_quit()
         options = uc.ChromeOptions()
         # undetected-chromedriver automatically prevents bot detection
         # Do not use --incognito, it triggers Cloudflare
-        self.driver = uc.Chrome(options=options)
+        options.add_argument("--no-sandbox")
+        options.add_argument("--disable-dev-shm-usage")
+        self.driver = uc.Chrome(
+            options=options,
+            version_main=145
+        )
+
+    def safe_quit(self):
+        """Safely quit the driver, ignoring errors."""
+        try:
+            if hasattr(self, 'driver') and self.driver:
+                self.driver.quit()
+        except Exception:
+            pass
 
     def wait_for_cloudflare(self, driver, timeout=60):
         """Wait for Cloudflare verification page — usually passes automatically with undetected-chromedriver."""
@@ -142,8 +156,15 @@ class AuthVFS:
         while True:
             try:
                 driver.get(args["url"])
-            except Exception:
-                return False
+            except Exception as e:
+                print(f"Warning: Driver error: {e}, recreating driver...", flush=True)
+                try:
+                    self.create_driver()
+                    driver = self.driver
+                except Exception as create_err:
+                    print(f"Warning: Could not recreate driver: {create_err}, retrying in 5s...", flush=True)
+                    time.sleep(5)
+                continue
 
             # Wait for Cloudflare verification
             if not self.wait_for_cloudflare(driver, timeout=60):
