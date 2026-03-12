@@ -24,10 +24,6 @@ class AuthVFS:
     def create_driver(self):
         self.safe_quit()
         options = uc.ChromeOptions()
-        # Use existing Chrome user profile to pass Cloudflare verification
-        # The real browser cookies and history help Cloudflare recognize as a real user
-        options.add_argument("--user-data-dir=C:/Users/akbyh/AppData/Local/Google/Chrome/User Data")
-        options.add_argument("--profile-directory=Default")
         options.add_argument("--no-sandbox")
         options.add_argument("--disable-dev-shm-usage")
         self.driver = uc.Chrome(
@@ -44,12 +40,12 @@ class AuthVFS:
             pass
 
     def wait_for_cloudflare(self, driver, timeout=120):
-        """Wait for Cloudflare verification page — with user profile, usually passes automatically.
+        """Wait for Cloudflare verification page.
         Falls back to 2Captcha if automatic verification fails."""
         start_time = time.time()
 
-        # Phase 1: Wait for automatic pass (Chrome profile usually handles this)
-        auto_timeout = min(timeout, 30)  # Wait max 30 seconds for auto pass
+        # Phase 1: Wait for automatic pass (15 seconds)
+        auto_timeout = min(timeout, 15)
         while time.time() - start_time < auto_timeout:
             try:
                 current_title = driver.title.lower()
@@ -68,9 +64,30 @@ class AuthVFS:
         # Phase 2: Try 2Captcha if available
         if self.captcha_solver:
             print("Automatic Cloudflare pass failed, trying 2Captcha...", flush=True)
-            token = self._solve_with_2captcha(driver)
-            if token:
-                return True
+            result = self._solve_with_2captcha(driver)
+            if result:
+                # Wait for page to redirect after token injection
+                time.sleep(10)
+                # Check again
+                try:
+                    current_title = driver.title.lower()
+                    if "bir dakika" not in current_title and "just a moment" not in current_title:
+                        print("Cloudflare passed after 2Captcha!", flush=True)
+                        return True
+                except Exception:
+                    pass
+                # If still on Cloudflare, keep waiting
+                remaining = max(0, timeout - (time.time() - start_time))
+                wait_start = time.time()
+                while time.time() - wait_start < remaining:
+                    try:
+                        current_title = driver.title.lower()
+                        if "bir dakika" not in current_title and "just a moment" not in current_title:
+                            print("Cloudflare verification passed after 2Captcha!", flush=True)
+                            return True
+                    except Exception:
+                        pass
+                    time.sleep(3)
 
         # Phase 3: Keep waiting until full timeout
         while time.time() - start_time < timeout:
@@ -152,18 +169,28 @@ class AuthVFS:
             # Inject the solution token into the page
             driver.execute_script("""
                 var token = arguments[0];
-                // Try to find and fill cf-turnstile-response input
+
+                // Method 1: Set cf-turnstile-response inputs
                 var inputs = document.querySelectorAll('[name="cf-turnstile-response"]');
                 inputs.forEach(function(input) {
                     input.value = token;
                 });
 
-                // Try to trigger the callback
+                // Method 2: Find turnstile callback and call it
                 if (typeof window.turnstileCallback === 'function') {
                     window.turnstileCallback(token);
                 }
 
-                // Fallback: find the form and add the token
+                // Method 3: Find all callbacks on window._cf_chl_opt or similar
+                var cbs = document.querySelectorAll('[data-callback]');
+                cbs.forEach(function(el) {
+                    var cbName = el.getAttribute('data-callback');
+                    if (typeof window[cbName] === 'function') {
+                        window[cbName](token);
+                    }
+                });
+
+                // Method 4: Try submitting the closest form
                 var forms = document.querySelectorAll('form');
                 forms.forEach(function(form) {
                     var existing = form.querySelector('[name="cf-turnstile-response"]');
@@ -173,8 +200,22 @@ class AuthVFS:
                         hidden.name = 'cf-turnstile-response';
                         hidden.value = token;
                         form.appendChild(hidden);
+                    } else {
+                        existing.value = token;
                     }
                 });
+
+                // Method 5: Directly call Turnstile API callback if available
+                try {
+                    var widgets = document.querySelectorAll('.cf-turnstile');
+                    widgets.forEach(function(w) {
+                        var cbName = w.getAttribute('data-callback');
+                        if (cbName && typeof window[cbName] === 'function') {
+                            window[cbName](token);
+                        }
+                    });
+                } catch(e) {}
+
             """, token)
 
             print("2Captcha: Token injected into page.", flush=True)
@@ -357,10 +398,6 @@ class AuthVFS:
         return True
     
     def intialize(self):
-        print("IMPORTANT: Please close ALL Chrome windows before running this script!", flush=True)
-        print("(Chrome profile can only be used by one process at a time.)", flush=True)
-        print("Press Enter when ready...", flush=True)
-        input()
         self.create_driver()
         print("""
 ██    ██ ███████ ███████          ██ ██     ██ ████████
