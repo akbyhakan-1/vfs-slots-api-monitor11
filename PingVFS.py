@@ -11,6 +11,8 @@ from datetime import datetime
 from TelegramNotifier import TelegramNotifier
 from StatusWriter import update_center
 
+sys.stdout.reconfigure(errors='replace')
+
 MIN_JWT_LENGTH = 10
 
 def play_alert():
@@ -128,12 +130,15 @@ class PingVFS:
     def init(self):
         self.get_auth_token()
 
-        print("""
-██    ██ ███████ ███████     ███████ ██       ██████  ████████ ███████          
-██    ██ ██      ██          ██      ██      ██    ██    ██    ██               
-██    ██ █████   ███████     ███████ ██      ██    ██    ██    ███████          
- ██  ██  ██           ██          ██ ██      ██    ██    ██         ██          
-  ████   ██      ███████     ███████ ███████  ██████     ██    ███████ ██ ██ ██""")
+        print(r"""
+ =============================================
+  __   _____ ___     ___ _    ___ _____ ___
+  \ \ / / __/ __|   / __| |  / _ \_   _/ __|
+   \ V /| _/ __ \   \__ \ |_| (_) || | \__ \
+    \_/ |___\___/   |___/____|\___/ |_| |___/
+  VFS Slot Monitor
+ =============================================
+""")
 
         print("\n")
         print("Started at:", end=" ")
