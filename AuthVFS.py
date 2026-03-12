@@ -44,8 +44,8 @@ class AuthVFS:
         Falls back to 2Captcha if automatic verification fails."""
         start_time = time.time()
 
-        # Phase 1: Wait for automatic pass (15 seconds)
-        auto_timeout = min(timeout, 15)
+        # Phase 1: Wait for automatic pass (30 seconds)
+        auto_timeout = min(timeout, 30)
         while time.time() - start_time < auto_timeout:
             try:
                 current_title = driver.title.lower()
@@ -349,7 +349,7 @@ class AuthVFS:
                 continue
 
             # Wait for Cloudflare verification
-            if not self.wait_for_cloudflare(driver, timeout=60):
+            if not self.wait_for_cloudflare(driver, timeout=120):
                 # If not passed, reload the page and retry
                 print("Cloudflare not passed, retrying...", flush=True)
                 continue
