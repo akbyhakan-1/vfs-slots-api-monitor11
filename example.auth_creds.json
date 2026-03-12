@@ -1,9 +1,9 @@
 {
     "url":"https://visa.vfsglobal.com/tur/tr/nld/login",
-    "email_id":"//*[@id=\"mat-input-0\"]",
-    "password_id":"//*[@id=\"mat-input-1\"]",
+    "email_id":"//*[@id='email']",
+    "password_id":"//*[@id='password']",
     "ensure_login":"//*[contains(text(), 'Start New Booking')]",
-    "submit":"//*[contains(text(), 'Sign In')]",
+    "submit":"//button[contains(@class,'mat-mdc-raised-button')]",
     "otp_input":"//*[@id=\"mat-input-3\"]",
     "otp_submit":"//*[contains(text(), 'Oturum Aç')]",
     "cloudflare_checkbox":"//input[@type='checkbox']",
