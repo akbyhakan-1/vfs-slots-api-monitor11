@@ -3,8 +3,7 @@ import os
 import time
 import json
 from datetime import datetime, timezone
-from urllib.parse import urlparse
-from selenium import webdriver
+import undetected_chromedriver as uc
 from selenium.webdriver.common.by import By
 from selenium.common.exceptions import NoSuchElementException
 from OTPReader import OTPReader
@@ -18,56 +17,27 @@ class AuthVFS:
         self._otp_reader = None
 
     def create_driver(self):
-        options = webdriver.ChromeOptions()
-        # Anti-detection: hide "Chrome is controlled by automated software" banner
-        options.add_argument("--disable-blink-features=AutomationControlled")
-        options.add_experimental_option("excludeSwitches", ["enable-automation"])
-        options.add_experimental_option("useAutomationExtension", False)
-        # Incognito removed — triggers Cloudflare bot detection
-        # Initializing the driver client.
-        self.driver = webdriver.Chrome(options=options)
-        # Hide navigator.webdriver from Cloudflare fingerprinting
-        self.driver.execute_cdp_cmd("Page.addScriptToEvaluateOnNewDocument", {
-            "source": "Object.defineProperty(navigator, 'webdriver', {get: () => undefined})"
-        })
+        options = uc.ChromeOptions()
+        # undetected-chromedriver automatically prevents bot detection
+        # Do not use --incognito, it triggers Cloudflare
+        self.driver = uc.Chrome(options=options)
 
-    def wait_for_cloudflare(self, driver, timeout=30):
-        """Wait for Cloudflare challenge to pass. Handles both auto-redirect and checkbox scenarios."""
+    def wait_for_cloudflare(self, driver, timeout=60):
+        """Wait for Cloudflare verification page — usually passes automatically with undetected-chromedriver."""
         start_time = time.time()
         while time.time() - start_time < timeout:
             current_title = driver.title.lower()
 
-            # If the page title is no longer the Cloudflare challenge page, we're through
+            # Check if Cloudflare page has been passed
             if "bir dakika" not in current_title and "just a moment" not in current_title:
-                print("Cloudflare doğrulaması geçildi.", flush=True)
+                print("Cloudflare verification passed.", flush=True)
                 return True
 
-            # Check for Cloudflare turnstile checkbox inside an iframe
-            try:
-                iframes = driver.find_elements(By.TAG_NAME, "iframe")
-                for iframe in iframes:
-                    try:
-                        src = iframe.get_attribute("src") or ""
-                        parsed_src = urlparse(src)
-                        if parsed_src.netloc == "challenges.cloudflare.com" or "turnstile" in src:
-                            driver.switch_to.frame(iframe)
-                            try:
-                                checkbox = driver.find_element(By.CSS_SELECTOR, "input[type='checkbox']")
-                                checkbox.click()
-                                print("Cloudflare checkbox tıklandı.", flush=True)
-                            except Exception:
-                                pass
-                            driver.switch_to.default_content()
-                            break
-                    except Exception:
-                        driver.switch_to.default_content()
-                        continue
-            except Exception:
-                driver.switch_to.default_content()
+            # If still on Cloudflare page, wait
+            print("Waiting for Cloudflare verification...", flush=True)
+            time.sleep(3)
 
-            time.sleep(2)
-
-        print("Warning: Cloudflare doğrulaması geçilemedi, devam ediliyor...", flush=True)
+        print("Warning: Cloudflare verification timed out, reloading page...", flush=True)
         return False
 
     def _get_otp_reader(self):
@@ -107,7 +77,9 @@ class AuthVFS:
         try:
             reader = self._get_otp_reader()
         except Exception as e:
-            print(f"Warning: could not connect to IMAP server: {e}", flush=True)
+            print(f"Warning: Gmail IMAP connection error: {e}", flush=True)
+            print("Check: are email_user and email_pass in auth_creds.json correct?", flush=True)
+            print("App Password must be 16 characters without spaces (e.g., zkihpinfhrftxmql)", flush=True)
             self._otp_reader = None  # Reset so next call retries the connection
             return None
         return reader.wait_for_otp(
@@ -169,13 +141,15 @@ class AuthVFS:
         driver = self.driver
         while True:
             try:
-                # Initiate the GET request.
                 driver.get(args["url"])
             except Exception:
                 return False
 
-            # Wait for Cloudflare challenge to pass (auto or checkbox)
-            self.wait_for_cloudflare(driver, timeout=30)
+            # Wait for Cloudflare verification
+            if not self.wait_for_cloudflare(driver, timeout=60):
+                # If not passed, reload the page and retry
+                print("Cloudflare not passed, retrying...", flush=True)
+                continue
 
             # Let the page load fully.
             time.sleep(self.args["avrg_delay"])
