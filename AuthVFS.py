@@ -8,7 +8,7 @@ import undetected_chromedriver as uc
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
-from selenium.common.exceptions import NoSuchElementException, InvalidSessionIdException
+from selenium.common.exceptions import InvalidSessionIdException, TimeoutException
 from OTPReader import OTPReader
 
 
@@ -130,53 +130,55 @@ class AuthVFS:
         )
 
     def enter_otp(self, otp_code, driver):
-        """Type the OTP code into the OTP input field, handle Cloudflare checkbox, and submit."""
+        """Type the OTP code into the OTP input field and submit."""
         args = self.args
         try:
-            # 1. Enter OTP code
-            otp_input = driver.find_element(By.XPATH, args["otp_input"])
+            # 1. Wait for OTP input field to appear (may take a moment after login submit)
+            otp_xpath = args.get("otp_input", "//input[contains(@id, 'mat-input')]")
+            fallback_input_xpath = "//input[contains(@id, 'mat-input')]"
+            try:
+                otp_input = WebDriverWait(driver, 15).until(
+                    EC.presence_of_element_located((By.XPATH, otp_xpath))
+                )
+            except TimeoutException:
+                if otp_xpath != fallback_input_xpath:
+                    # Fallback: try a broader Angular Material input selector
+                    print("OTP input not found with configured XPath, trying fallback...", flush=True)
+                    otp_input = WebDriverWait(driver, 10).until(
+                        EC.presence_of_element_located((By.XPATH, fallback_input_xpath))
+                    )
+                else:
+                    raise
+
             otp_input.clear()
             otp_input.send_keys(otp_code)
-            time.sleep(1)
+            print("OTP code entered successfully.", flush=True)
+            time.sleep(2)
 
-            # 2. Cloudflare checkbox'a tıkla (varsa)
+            # 2. Click the submit button
+            otp_submit_xpath = args.get("otp_submit", "//button[contains(.,'Oturum')]")
+            fallback_submit_xpath = "//button[contains(.,'Oturum')]"
             try:
-                cloudflare_xpath = args.get("cloudflare_checkbox", "//input[@type='checkbox']")
-                # Cloudflare checkbox iframe içinde olabilir
-                iframes = driver.find_elements(By.TAG_NAME, "iframe")
-                clicked = False
-                for iframe in iframes:
-                    try:
-                        driver.switch_to.frame(iframe)
-                        checkbox = driver.find_element(By.XPATH, cloudflare_xpath)
-                        checkbox.click()
-                        clicked = True
-                        driver.switch_to.default_content()
-                        break
-                    except Exception:
-                        driver.switch_to.default_content()
-                        continue
+                otp_submit = WebDriverWait(driver, 10).until(
+                    EC.element_to_be_clickable((By.XPATH, otp_submit_xpath))
+                )
+            except TimeoutException:
+                if otp_submit_xpath != fallback_submit_xpath:
+                    # Fallback: try a broader button selector
+                    print("OTP submit button not found with configured XPath, trying fallback...", flush=True)
+                    otp_submit = WebDriverWait(driver, 10).until(
+                        EC.element_to_be_clickable((By.XPATH, fallback_submit_xpath))
+                    )
+                else:
+                    raise
 
-                if not clicked:
-                    # Try in main page
-                    try:
-                        checkbox = driver.find_element(By.XPATH, cloudflare_xpath)
-                        checkbox.click()
-                    except NoSuchElementException:
-                        pass  # Cloudflare checkbox not present, skip
-
-                time.sleep(2)  # Wait for Cloudflare verification
-            except Exception as e:
-                print(f"Note: Cloudflare checkbox handling: {e}")
-                driver.switch_to.default_content()
-
-            # 3. Click the submit button
-            otp_submit = driver.find_element(By.XPATH, args["otp_submit"])
             otp_submit.click()
+            print("OTP submitted.", flush=True)
             time.sleep(self.args["avrg_delay"])
             return True
-        except NoSuchElementException:
-            print("Warning: OTP input field not found on page — retrying login from the start.")
+        except Exception as e:
+            print(f"Warning: OTP entry failed: {e}", flush=True)
+            print("Retrying login from the start.", flush=True)
             return False
 
     def get_jwt(self, args):
