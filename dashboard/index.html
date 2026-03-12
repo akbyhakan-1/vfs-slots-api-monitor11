@@ -201,9 +201,122 @@
   }
   .legend-item { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--muted); }
 
-  /* ══════════════════════════════════════════════════════════
-     SETTINGS PAGE
-  ══════════════════════════════════════════════════════════ */
+  /* ── Process Controls ── */
+  .proc-controls {
+    max-width: 1100px; margin: 0 auto 16px;
+    display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+  }
+  .proc-controls-label { font-size: 12px; color: var(--muted); margin-right: 4px; }
+  .btn-proc {
+    background: transparent;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--text);
+    cursor: pointer;
+    font-family: inherit;
+    font-size: 12px;
+    font-weight: 500;
+    padding: 6px 14px;
+    transition: background .15s, border-color .15s, color .15s;
+    display: inline-flex; align-items: center; gap: 5px;
+  }
+  .btn-proc:disabled { opacity: .5; cursor: not-allowed; }
+  .btn-proc.start  { border-color: var(--green); color: var(--green); }
+  .btn-proc.start:hover:not(:disabled)  { background: rgba(34,197,94,.12); }
+  .btn-proc.stop   { border-color: var(--red);   color: var(--red); }
+  .btn-proc.stop:hover:not(:disabled)   { background: rgba(239,68,68,.12); }
+  .btn-proc.log    { border-color: var(--blue);  color: var(--blue); }
+  .btn-proc.log:hover:not(:disabled)    { background: rgba(59,130,246,.12); }
+
+  /* card-footer for process controls */
+  .card-footer {
+    padding: 10px 16px;
+    border-top: 1px solid var(--border);
+    display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+  }
+  .proc-status-dot {
+    width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0;
+    background: var(--gray);
+    transition: background .3s;
+  }
+  .proc-status-dot.running {
+    background: var(--green);
+    animation: pulse 1.4s ease-in-out infinite;
+  }
+  .proc-status-text { font-size: 11px; color: var(--muted); }
+  .proc-status-text.running { color: var(--green); }
+
+  /* ── Log Viewer Modal ── */
+  #log-modal {
+    display: none;
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,.7);
+    z-index: 500;
+    align-items: center; justify-content: center;
+    padding: 16px;
+  }
+  #log-modal.open { display: flex; }
+  .log-modal-box {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    width: 100%; max-width: 860px;
+    max-height: 80vh;
+    display: flex; flex-direction: column;
+    overflow: hidden;
+  }
+  .log-modal-header {
+    padding: 14px 20px;
+    border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: space-between;
+    flex-shrink: 0;
+  }
+  .log-modal-title { font-weight: 600; font-size: 14px; }
+  .log-modal-close {
+    background: transparent; border: none; color: var(--muted);
+    cursor: pointer; font-size: 18px; line-height: 1; padding: 2px 6px;
+    border-radius: 6px; transition: background .12s, color .12s;
+  }
+  .log-modal-close:hover { background: var(--surface2); color: var(--text); }
+  .log-modal-body {
+    display: grid; grid-template-columns: 1fr 1fr;
+    gap: 0; overflow: hidden; flex: 1; min-height: 0;
+  }
+  @media (max-width: 600px) { .log-modal-body { grid-template-columns: 1fr; } }
+  .log-pane {
+    display: flex; flex-direction: column;
+    border-right: 1px solid var(--border);
+    overflow: hidden;
+  }
+  .log-pane:last-child { border-right: none; }
+  .log-pane-title {
+    padding: 8px 14px;
+    font-size: 11px; font-weight: 600; color: var(--muted);
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+  }
+  .log-lines {
+    flex: 1; overflow-y: auto;
+    padding: 10px 14px;
+    font-family: 'Consolas', 'Monaco', monospace;
+    font-size: 11px;
+    color: #4ade80;
+    background: var(--bg);
+    white-space: pre-wrap; word-break: break-all;
+    line-height: 1.5;
+  }
+  .log-lines .log-empty { color: var(--muted); font-style: italic; }
+
+  /* spinner inside button */
+  .btn-spinner {
+    display: inline-block; width: 10px; height: 10px;
+    border: 2px solid currentColor; border-top-color: transparent;
+    border-radius: 50%; animation: spin .7s linear infinite;
+    vertical-align: middle;
+  }
+
+
   #page-settings { display: none; padding: 24px 16px 0; }
 
   .settings-layout {
@@ -568,6 +681,13 @@
     <div id="countdown"><span class="dot"></span> Canlı İzleme</div>
   </header>
 
+  <!-- Global process controls -->
+  <div class="proc-controls">
+    <span class="proc-controls-label">Süreçler:</span>
+    <button class="btn-proc start" id="btn-start-all" onclick="startAll()">▶️ Tümünü Başlat</button>
+    <button class="btn-proc stop"  id="btn-stop-all"  onclick="stopAll()">⏹️ Tümünü Durdur</button>
+  </div>
+
   <div id="loading">
     <div class="spinner"></div>
     <p>Durum yükleniyor…</p>
@@ -906,6 +1026,26 @@
   </div><!-- /settings-layout -->
 </div><!-- /page-settings -->
 
+<!-- ═══════ Log Viewer Modal ═══════ -->
+<div id="log-modal">
+  <div class="log-modal-box">
+    <div class="log-modal-header">
+      <span class="log-modal-title" id="log-modal-title">📋 Loglar</span>
+      <button class="log-modal-close" onclick="closeLogModal()" title="Kapat">✕</button>
+    </div>
+    <div class="log-modal-body">
+      <div class="log-pane">
+        <div class="log-pane-title">🔐 Auth Logları</div>
+        <div class="log-lines" id="log-auth"></div>
+      </div>
+      <div class="log-pane">
+        <div class="log-pane-title">📡 Ping Logları</div>
+        <div class="log-lines" id="log-ping"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- ═══════ Add Country Dialog ═══════ -->
 <div class="overlay" id="add-dialog">
   <div class="dialog">
@@ -1009,7 +1149,15 @@ function renderGrid(data) {
     const lastCheck  = c.last_check  ? 'Son kontrol: ' + fmtTime(c.last_check) : '';
     const slotCount  = (c.centers||[]).filter(x => normaliseStatus(x.status) === 'slot_found').length;
     const slotBadge  = slotCount > 0 ? '<span style="color:var(--green);font-weight:600">' + slotCount + ' randevu var!</span>' : '';
-    return '<div class="card">' +
+    const procInfo   = _procStatus[code] || {};
+    const running    = !!procInfo.running;
+    const dotClass   = running ? 'proc-status-dot running' : 'proc-status-dot';
+    const statusText = running ? 'Çalışıyor' : 'Durduruldu';
+    const statusCls  = running ? 'proc-status-text running' : 'proc-status-text';
+    const startBtn   = running
+      ? '<button class="btn-proc stop"  onclick="stopCountry(\'' + code + '\')" id="proc-btn-' + code + '">⏹️ Durdur</button>'
+      : '<button class="btn-proc start" onclick="startCountry(\'' + code + '\')" id="proc-btn-' + code + '">▶️ Başlat</button>';
+    return '<div class="card" id="card-' + code + '">' +
       '<div class="card-header">' +
         '<span class="card-flag">' + flag + '</span>' +
         '<div class="card-info">' +
@@ -1019,6 +1167,12 @@ function renderGrid(data) {
         '</div>' +
       '</div>' +
       '<div class="centers">' + renderCenters(c.centers) + '</div>' +
+      '<div class="card-footer">' +
+        '<span class="' + dotClass + '" id="proc-dot-' + code + '"></span>' +
+        '<span class="' + statusCls + '" id="proc-status-text-' + code + '">' + statusText + '</span>' +
+        startBtn +
+        '<button class="btn-proc log" onclick="openLogModal(\'' + code + '\',\'' + (c.name || code.toUpperCase()) + '\')">📋 Loglar</button>' +
+      '</div>' +
       '</div>';
   }).join('');
 }
@@ -1047,6 +1201,7 @@ async function refresh() {
   gridEl.style.display  = 'grid';
   gridEl.innerHTML = renderGrid(data);
   lastEl.textContent = fmtTime(data.last_updated);
+  applyProcStatusToCards();
 }
 
 function startCountdown() {
@@ -1066,8 +1221,170 @@ function startCountdown() {
 refresh().then(startCountdown);
 
 /* ═══════════════════════════════════════════════════════════
-   SETTINGS LOGIC
+   PROCESS MANAGER
 ═══════════════════════════════════════════════════════════ */
+
+let _procStatus = {};       // country_code → {running, auth_pid, ping_pid, ...}
+let _logModalCode = null;   // currently open log modal country
+let _logRefreshTimer = null;
+
+async function fetchProcStatus() {
+  try {
+    const res = await fetch('/api/process/status?t=' + Date.now());
+    if (!res.ok) return;
+    _procStatus = await res.json();
+    applyProcStatusToCards();
+  } catch(e) { /* silently ignore */ }
+}
+
+function applyProcStatusToCards() {
+  for (const code of Object.keys(_procStatus)) {
+    const info    = _procStatus[code];
+    const running = !!info.running;
+
+    const dot     = document.getElementById('proc-dot-' + code);
+    const txt     = document.getElementById('proc-status-text-' + code);
+    const btn     = document.getElementById('proc-btn-' + code);
+
+    if (dot) {
+      dot.className = running ? 'proc-status-dot running' : 'proc-status-dot';
+    }
+    if (txt) {
+      txt.textContent = running ? 'Çalışıyor' : 'Durduruldu';
+      txt.className   = running ? 'proc-status-text running' : 'proc-status-text';
+    }
+    if (btn) {
+      btn.disabled = false;
+      if (running) {
+        btn.className   = 'btn-proc stop';
+        btn.innerHTML   = '⏹️ Durdur';
+        btn.onclick     = function() { stopCountry(code); };
+      } else {
+        btn.className   = 'btn-proc start';
+        btn.innerHTML   = '▶️ Başlat';
+        btn.onclick     = function() { startCountry(code); };
+      }
+    }
+  }
+}
+
+// Poll every 5 seconds
+setInterval(fetchProcStatus, 5000);
+fetchProcStatus();
+
+async function startCountry(code) {
+  const btn = document.getElementById('proc-btn-' + code);
+  if (btn) { btn.disabled = true; btn.innerHTML = '<span class="btn-spinner"></span> Başlatılıyor…'; }
+  try {
+    const res  = await fetch('/api/process/' + code + '/start', { method: 'POST' });
+    const data = await res.json();
+    if (!res.ok) { showToast('❌ ' + (data.error || 'Başlatılamadı'), 'error'); }
+    else         { showToast('✅ ' + code.toUpperCase() + ' başlatıldı!', 'success'); }
+  } catch(e) {
+    showToast('❌ Bağlantı hatası: ' + e.message, 'error');
+  }
+  await fetchProcStatus();
+}
+
+async function stopCountry(code) {
+  const btn = document.getElementById('proc-btn-' + code);
+  if (btn) { btn.disabled = true; btn.innerHTML = '<span class="btn-spinner"></span> Durduruluyor…'; }
+  try {
+    const res  = await fetch('/api/process/' + code + '/stop', { method: 'POST' });
+    const data = await res.json();
+    if (!res.ok) { showToast('❌ ' + (data.error || 'Durdurulamadı'), 'error'); }
+    else         { showToast('✅ ' + code.toUpperCase() + ' durduruldu.', 'success'); }
+  } catch(e) {
+    showToast('❌ Bağlantı hatası: ' + e.message, 'error');
+  }
+  await fetchProcStatus();
+}
+
+async function startAll() {
+  const btn = document.getElementById('btn-start-all');
+  btn.disabled = true;
+  try {
+    const res  = await fetch('/api/countries');
+    const data = await res.json();
+    const codes = (data.countries || []).map(c => c.code);
+    for (const code of codes) {
+      await fetch('/api/process/' + code + '/start', { method: 'POST' });
+    }
+    showToast('✅ Tüm ülkeler başlatıldı!', 'success');
+  } catch(e) {
+    showToast('❌ Hata: ' + e.message, 'error');
+  }
+  btn.disabled = false;
+  await fetchProcStatus();
+}
+
+async function stopAll() {
+  const btn = document.getElementById('btn-stop-all');
+  btn.disabled = true;
+  try {
+    const codes = Object.keys(_procStatus);
+    for (const code of codes) {
+      await fetch('/api/process/' + code + '/stop', { method: 'POST' });
+    }
+    showToast('✅ Tüm süreçler durduruldu.', 'success');
+  } catch(e) {
+    showToast('❌ Hata: ' + e.message, 'error');
+  }
+  btn.disabled = false;
+  await fetchProcStatus();
+}
+
+/* ── Log Modal ── */
+
+function openLogModal(code, name) {
+  _logModalCode = code;
+  document.getElementById('log-modal-title').textContent = '📋 ' + name + ' Logları';
+  document.getElementById('log-modal').classList.add('open');
+  loadLogs(code);
+  _logRefreshTimer = setInterval(function() {
+    if (_logModalCode) loadLogs(_logModalCode);
+  }, 3000);
+}
+
+function closeLogModal() {
+  document.getElementById('log-modal').classList.remove('open');
+  _logModalCode = null;
+  if (_logRefreshTimer) { clearInterval(_logRefreshTimer); _logRefreshTimer = null; }
+}
+
+document.getElementById('log-modal').addEventListener('click', function(e) {
+  if (e.target === e.currentTarget) closeLogModal();
+});
+
+async function loadLogs(code) {
+  try {
+    const res  = await fetch('/api/process/' + code + '/logs?t=' + Date.now());
+    if (!res.ok) {
+      setLogLines('log-auth', ['(süreç çalışmıyor)']);
+      setLogLines('log-ping', ['(süreç çalışmıyor)']);
+      return;
+    }
+    const data = await res.json();
+    setLogLines('log-auth', data.auth_log || []);
+    setLogLines('log-ping', data.ping_log || []);
+  } catch(e) {
+    setLogLines('log-auth', ['Hata: ' + e.message]);
+    setLogLines('log-ping', ['Hata: ' + e.message]);
+  }
+}
+
+function setLogLines(elId, lines) {
+  const el = document.getElementById(elId);
+  if (!el) return;
+  if (lines.length === 0) {
+    el.innerHTML = '<span class="log-empty">Henüz log yok…</span>';
+  } else {
+    el.textContent = lines.join('\n');
+    el.scrollTop = el.scrollHeight;
+  }
+}
+
+
 
 let currentCountryCode = null;
 

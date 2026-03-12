@@ -12,16 +12,26 @@ Serves:
   POST /api/config/<code>/ping     → save ping_creds.json
   DELETE /api/config/<code>        → delete country config directory
   POST /api/config/<code>/test-telegram → send Telegram test message
+  POST /api/process/<code>/start   → start AuthVFS + PingVFS subprocesses
+  POST /api/process/<code>/stop    → stop both subprocesses
+  GET  /api/process/status         → return running status for all countries
+  GET  /api/process/<code>/logs    → return recent logs for a country
 
 Usage:
     python dashboard/server.py
     → http://localhost:8080
 """
+import collections
 import copy
+import datetime
 import glob
 import json
 import os
 import shutil
+import subprocess
+import sys
+import threading
+import time
 import urllib.request
 from http.server import BaseHTTPRequestHandler, HTTPServer
 
@@ -34,6 +44,178 @@ COUNTRIES_DIR = os.path.join(ROOT_DIR, "countries")
 
 PORT = 8080
 MASKED_PREFIX = "****"
+
+
+# ── Process manager ───────────────────────────────────────────────────────────
+
+# _processes maps country code → process info dict
+_processes: dict = {}
+_processes_lock = threading.Lock()
+
+
+def _read_output(proc, log_deque, stop_event):
+    """Read lines from a subprocess stdout and append to a deque."""
+    try:
+        for line in proc.stdout:
+            if stop_event.is_set():
+                break
+            log_deque.append(line.rstrip("\r\n"))
+    except Exception:
+        pass
+
+
+def _start_ping_delayed(code, ping_log, delay=5):
+    """Start PingVFS after a short delay so the JWT token is ready."""
+    time.sleep(delay)
+    with _processes_lock:
+        if code not in _processes:
+            return
+        try:
+            ping_proc = subprocess.Popen(
+                [sys.executable, "PingVFS.py", "--country", code],
+                stdout=subprocess.PIPE,
+                stderr=subprocess.STDOUT,
+                text=True,
+                cwd=ROOT_DIR,
+                bufsize=1,
+            )
+        except Exception as exc:
+            _processes[code]["ping_log"].append(f"[ERROR] PingVFS başlatılamadı: {exc}")
+            return
+        ping_stop = threading.Event()
+        t = threading.Thread(
+            target=_read_output,
+            args=(ping_proc, ping_log, ping_stop),
+            daemon=True,
+        )
+        t.start()
+        _processes[code]["ping_proc"] = ping_proc
+        _processes[code]["ping_stop"] = ping_stop
+
+
+def process_start(code):
+    """Start AuthVFS and PingVFS for *code*.
+
+    Returns (response_dict, error_str).  On success error_str is None.
+    """
+    with _processes_lock:
+        if code in _processes:
+            info = _processes[code]
+            auth_alive = info.get("auth_proc") and info["auth_proc"].poll() is None
+            ping_alive = info.get("ping_proc") and info["ping_proc"].poll() is None
+            if auth_alive or ping_alive:
+                return None, "already running"
+            # Dead processes: clean up and allow restart
+            _processes.pop(code)
+
+        auth_log: collections.deque = collections.deque(maxlen=200)
+        ping_log: collections.deque = collections.deque(maxlen=200)
+
+        try:
+            auth_proc = subprocess.Popen(
+                [sys.executable, "AuthVFS.py", "--country", code],
+                stdout=subprocess.PIPE,
+                stderr=subprocess.STDOUT,
+                text=True,
+                cwd=ROOT_DIR,
+                bufsize=1,
+            )
+        except Exception as exc:
+            return None, f"AuthVFS başlatılamadı: {exc}"
+
+        auth_stop = threading.Event()
+        t = threading.Thread(
+            target=_read_output,
+            args=(auth_proc, auth_log, auth_stop),
+            daemon=True,
+        )
+        t.start()
+
+        _processes[code] = {
+            "auth_proc": auth_proc,
+            "ping_proc": None,
+            "auth_log": auth_log,
+            "ping_log": ping_log,
+            "auth_stop": auth_stop,
+            "ping_stop": None,
+            "started_at": datetime.datetime.now().isoformat(timespec="seconds"),
+        }
+
+    # Start PingVFS after a 5-second delay in a background thread
+    ping_timer = threading.Thread(
+        target=_start_ping_delayed,
+        args=(code, ping_log),
+        daemon=True,
+    )
+    ping_timer.start()
+
+    return {"status": "started", "country": code}, None
+
+
+def process_stop(code):
+    """Terminate both processes for *code*.
+
+    Returns (response_dict, error_str).
+    """
+    with _processes_lock:
+        if code not in _processes:
+            return None, "not running"
+        info = _processes.pop(code)
+
+    for proc_key, stop_key in (("auth_proc", "auth_stop"), ("ping_proc", "ping_stop")):
+        stop_ev = info.get(stop_key)
+        if stop_ev:
+            stop_ev.set()
+        proc = info.get(proc_key)
+        if proc is None:
+            continue
+        if proc.poll() is None:
+            try:
+                proc.terminate()
+                proc.wait(timeout=3)
+            except Exception:
+                pass
+        if proc.poll() is None:
+            try:
+                proc.kill()
+            except Exception:
+                pass
+
+    return {"status": "stopped", "country": code}, None
+
+
+def get_all_process_status():
+    """Return a dict of country_code → status info."""
+    with _processes_lock:
+        result = {}
+        for code, info in _processes.items():
+            auth_proc = info.get("auth_proc")
+            ping_proc = info.get("ping_proc")
+            auth_running = auth_proc is not None and auth_proc.poll() is None
+            ping_running = ping_proc is not None and ping_proc.poll() is None
+            result[code] = {
+                "running": auth_running or ping_running,
+                "auth_running": auth_running,
+                "ping_running": ping_running,
+                "auth_pid": auth_proc.pid if auth_proc else None,
+                "ping_pid": ping_proc.pid if ping_proc else None,
+                "started_at": info.get("started_at", ""),
+                "auth_log": list(info["auth_log"])[-50:],
+                "ping_log": list(info["ping_log"])[-50:],
+            }
+        return result
+
+
+def get_process_logs(code):
+    """Return full log buffers for *code*."""
+    with _processes_lock:
+        if code not in _processes:
+            return None
+        info = _processes[code]
+        return {
+            "auth_log": list(info["auth_log"]),
+            "ping_log": list(info["ping_log"]),
+        }
 
 
 # ── Password masking helpers ──────────────────────────────────────────────────
@@ -146,6 +328,21 @@ class Handler(BaseHTTPRequestHandler):
             else:
                 self._error("Invalid path", 404)
 
+        elif path == "/api/process/status":
+            self._json(get_all_process_status())
+
+        elif path.startswith("/api/process/"):
+            parts = path[len("/api/process/"):].strip("/").split("/")
+            if len(parts) == 2 and parts[1] == "logs":
+                code = parts[0]
+                logs = get_process_logs(code)
+                if logs is None:
+                    self._error("Country not running", 404)
+                else:
+                    self._json(logs)
+            else:
+                self._error("Not found", 404)
+
         else:
             self.send_response(404)
             self.end_headers()
@@ -178,6 +375,28 @@ class Handler(BaseHTTPRequestHandler):
                     self._error("Unknown action", 404)
             else:
                 self._error("Invalid path", 404)
+
+        elif path.startswith("/api/process/"):
+            parts = path[len("/api/process/"):].strip("/").split("/")
+            if len(parts) == 2:
+                code, action = parts
+                if action == "start":
+                    result, err = process_start(code)
+                    if err:
+                        self._error(err, 409 if err == "already running" else 500)
+                    else:
+                        self._json(result)
+                elif action == "stop":
+                    result, err = process_stop(code)
+                    if err:
+                        self._error(err, 404 if err == "not running" else 500)
+                    else:
+                        self._json(result)
+                else:
+                    self._error("Unknown action", 404)
+            else:
+                self._error("Invalid path", 404)
+
         else:
             self._error("Not found", 404)
 
