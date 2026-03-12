@@ -6,6 +6,8 @@ import json
 from datetime import datetime, timezone
 import undetected_chromedriver as uc
 from selenium.webdriver.common.by import By
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
 from selenium.common.exceptions import NoSuchElementException, InvalidSessionIdException
 from OTPReader import OTPReader
 
@@ -68,19 +70,28 @@ class AuthVFS:
 
     def get_loggedin(self, args, driver):
         try:
-            # Find the elements in the page.
-            email    = driver.find_element(By.XPATH, args["email_id"])
-            password = driver.find_element(By.XPATH, args["password_id"])
-            submit   = driver.find_element(By.XPATH, args["submit"])
-        except NoSuchElementException:
-            # If any of the elements aren't there, return false.
+            # Wait for Angular page to fully load (max 30 seconds)
+            wait = WebDriverWait(driver, 30)
+
+            # Wait for email field to be present and interactable
+            email    = wait.until(EC.presence_of_element_located((By.XPATH, args["email_id"])))
+            password = wait.until(EC.presence_of_element_located((By.XPATH, args["password_id"])))
+            submit   = wait.until(EC.element_to_be_clickable((By.XPATH, args["submit"])))
+
+            print("Login form found, filling credentials...", flush=True)
+        except Exception as e:
+            print(f"Warning: Login form not found: {e}", flush=True)
             return False
 
         # Fill up the form fields with necessary credentials.
+        email.clear()
         email.send_keys(args["user"])
+        time.sleep(1)
+        password.clear()
         password.send_keys(args["pass"])
         time.sleep(self.args["avrg_delay"])
         # Submit the form.
+        print("Submitting login form...", flush=True)
         submit.click()
         # Wait for the response to come.
         time.sleep(self.args["avrg_delay"])
@@ -183,7 +194,11 @@ class AuthVFS:
 
             # Let the page load fully.
             time.sleep(self.args["avrg_delay"])
-            driver = self.get_loggedin(args, driver)
+            login_result = self.get_loggedin(args, driver)
+            if login_result is False:
+                print("Warning: Could not fill login form, retrying...", flush=True)
+                continue
+            driver = login_result
 
             # OTP step
             if self.args.get("otp", {}).get("enabled", False):
