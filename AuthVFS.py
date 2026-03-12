@@ -7,6 +7,7 @@ import undetected_chromedriver as uc
 from selenium.webdriver.common.by import By
 from selenium.common.exceptions import NoSuchElementException, InvalidSessionIdException
 from OTPReader import OTPReader
+from CaptchaSolver import CaptchaSolver
 
 
 class AuthVFS:
@@ -15,6 +16,10 @@ class AuthVFS:
         self.args = args
         self.jwt = jwt
         self._otp_reader = None
+        # Initialize 2Captcha solver if configured
+        captcha_config = args.get("captcha", {})
+        api_key = captcha_config.get("api_key", "")
+        self.captcha_solver = CaptchaSolver(api_key) if api_key else None
 
     def create_driver(self):
         self.safe_quit()
@@ -39,9 +44,13 @@ class AuthVFS:
             pass
 
     def wait_for_cloudflare(self, driver, timeout=120):
-        """Wait for Cloudflare verification page — with user profile, usually passes automatically."""
+        """Wait for Cloudflare verification page — with user profile, usually passes automatically.
+        Falls back to 2Captcha if automatic verification fails."""
         start_time = time.time()
-        while time.time() - start_time < timeout:
+
+        # Phase 1: Wait for automatic pass (Chrome profile usually handles this)
+        auto_timeout = min(timeout, 30)  # Wait max 30 seconds for auto pass
+        while time.time() - start_time < auto_timeout:
             try:
                 current_title = driver.title.lower()
             except (InvalidSessionIdException, Exception):
@@ -49,17 +58,142 @@ class AuthVFS:
                 time.sleep(3)
                 continue
 
-            # Check if Cloudflare page has been passed
+            if "bir dakika" not in current_title and "just a moment" not in current_title:
+                print("Cloudflare verification passed (automatic).", flush=True)
+                return True
+
+            print("Waiting for Cloudflare verification...", flush=True)
+            time.sleep(3)
+
+        # Phase 2: Try 2Captcha if available
+        if self.captcha_solver:
+            print("Automatic Cloudflare pass failed, trying 2Captcha...", flush=True)
+            token = self._solve_with_2captcha(driver)
+            if token:
+                return True
+
+        # Phase 3: Keep waiting until full timeout
+        while time.time() - start_time < timeout:
+            try:
+                current_title = driver.title.lower()
+            except (InvalidSessionIdException, Exception):
+                time.sleep(3)
+                continue
+
             if "bir dakika" not in current_title and "just a moment" not in current_title:
                 print("Cloudflare verification passed.", flush=True)
                 return True
 
-            # If still on Cloudflare page, wait
-            print("Waiting for Cloudflare verification...", flush=True)
             time.sleep(3)
 
         print("Warning: Cloudflare verification timed out, reloading page...", flush=True)
         return False
+
+    def _solve_with_2captcha(self, driver):
+        """Extract Turnstile sitekey from page and solve with 2Captcha."""
+        import re
+        import urllib.parse
+
+        try:
+            sitekey = None
+
+            # Method 1: Look for turnstile div with data-sitekey
+            try:
+                turnstile_divs = driver.find_elements(By.CSS_SELECTOR, "[data-sitekey]")
+                for div in turnstile_divs:
+                    sitekey = div.get_attribute("data-sitekey")
+                    if sitekey:
+                        break
+            except Exception:
+                pass
+
+            # Method 2: Look in iframe src
+            if not sitekey:
+                try:
+                    iframes = driver.find_elements(By.TAG_NAME, "iframe")
+                    for iframe in iframes:
+                        src = iframe.get_attribute("src") or ""
+                        if src:
+                            parsed_src = urllib.parse.urlparse(src)
+                            hostname = parsed_src.hostname or ""
+                            is_cf = (hostname == "challenges.cloudflare.com" or
+                                     hostname.endswith(".challenges.cloudflare.com"))
+                            if is_cf or "turnstile" in parsed_src.path:
+                                params = urllib.parse.parse_qs(parsed_src.query)
+                                if "k" in params:
+                                    sitekey = params["k"][0]
+                                break
+                except Exception:
+                    pass
+
+            # Method 3: Search page source for sitekey pattern
+            if not sitekey:
+                try:
+                    page_source = driver.page_source
+                    match = re.search(r'sitekey["\s:=]+["\']?(0x[0-9a-fA-F]+)', page_source)
+                    if match:
+                        sitekey = match.group(1)
+                except Exception:
+                    pass
+
+            if not sitekey:
+                print("2Captcha: Could not find Turnstile sitekey on page.", flush=True)
+                return None
+
+            print(f"2Captcha: Found sitekey: {sitekey[:20]}...", flush=True)
+
+            # Solve with 2Captcha
+            current_url = driver.current_url
+            token = self.captcha_solver.solve_turnstile(current_url, sitekey)
+
+            if not token:
+                return None
+
+            # Inject the solution token into the page
+            driver.execute_script("""
+                var token = arguments[0];
+                // Try to find and fill cf-turnstile-response input
+                var inputs = document.querySelectorAll('[name="cf-turnstile-response"]');
+                inputs.forEach(function(input) {
+                    input.value = token;
+                });
+
+                // Try to trigger the callback
+                if (typeof window.turnstileCallback === 'function') {
+                    window.turnstileCallback(token);
+                }
+
+                // Fallback: find the form and add the token
+                var forms = document.querySelectorAll('form');
+                forms.forEach(function(form) {
+                    var existing = form.querySelector('[name="cf-turnstile-response"]');
+                    if (!existing) {
+                        var hidden = document.createElement('input');
+                        hidden.type = 'hidden';
+                        hidden.name = 'cf-turnstile-response';
+                        hidden.value = token;
+                        form.appendChild(hidden);
+                    }
+                });
+            """, token)
+
+            print("2Captcha: Token injected into page.", flush=True)
+            time.sleep(5)  # Wait for page to process token
+
+            # Check if Cloudflare passed
+            try:
+                current_title = driver.title.lower()
+                if "bir dakika" not in current_title and "just a moment" not in current_title:
+                    print("2Captcha: Cloudflare verification passed!", flush=True)
+                    return True
+            except Exception:
+                pass
+
+            return None
+
+        except Exception as e:
+            print(f"2Captcha: Error: {e}", flush=True)
+            return None
 
     def _get_otp_reader(self):
         """Return a connected OTPReader, creating one if needed."""
