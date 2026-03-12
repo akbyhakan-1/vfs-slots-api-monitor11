@@ -3,7 +3,7 @@ import os
 import time
 import random
 import json
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 import undetected_chromedriver as uc
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
@@ -126,7 +126,7 @@ class AuthVFS:
             return None
         return reader.wait_for_otp(
             poll_interval=poll_interval,
-            login_time=datetime.now(timezone.utc),
+            login_time=datetime.now(timezone.utc) - timedelta(seconds=60),
         )
 
     def enter_otp(self, otp_code, driver):

@@ -85,9 +85,9 @@ class OTPReader:
         if status != "OK" or not data or not data[0]:
             return None
 
-        # Iterate newest first
+        # Iterate newest first - only check last 3 emails to avoid IMAP timeout
         message_ids = data[0].split()
-        for msg_id in reversed(message_ids):
+        for msg_id in reversed(message_ids[-3:]):
             try:
                 status, msg_data = self.mail.fetch(msg_id, "(RFC822)")
                 if status != "OK":
