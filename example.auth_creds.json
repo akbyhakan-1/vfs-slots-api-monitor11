@@ -4,9 +4,23 @@
     "password_id":"//*[@id=\"mat-input-1\"]",
     "ensure_login":"//*[contains(text(), 'Start New Booking')]",
     "submit":"//*[contains(text(), 'Sign In')]",
-    "user":"YOUR_EMAIL",
-    "pass":"YOUR_PASSWORD",
+    "otp_input":"//*[@id=\"mat-input-2\"]",
+    "otp_submit":"//*[contains(text(), 'Verify')]",
+    "user":"YOUR_VFS_EMAIL",
+    "pass":"YOUR_VFS_PASSWORD",
     "auth_path":"./auth.txt",
     "refr_delay":600,
-    "avrg_delay":10
+    "avrg_delay":10,
+    "otp": {
+        "enabled": true,
+        "method": "email",
+        "imap_server": "imap.gmail.com",
+        "imap_port": 993,
+        "email_user": "YOUR_GMAIL_ADDRESS",
+        "email_pass": "YOUR_GMAIL_APP_PASSWORD",
+        "sender_filter": "donotreply@vfshelpline.com",
+        "subject_filter": "One Time Password",
+        "otp_timeout": 300,
+        "poll_interval": 5
+    }
 }

@@ -5,3 +5,5 @@ urlparams.json
 auth.txt
 output.txt
 alert.mp3
+__pycache__/
+*.pyc

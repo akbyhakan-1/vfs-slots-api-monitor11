@@ -2,15 +2,19 @@
 import os
 import time
 import json
-from datetime import datetime
+from datetime import datetime, timezone
 from selenium import webdriver
+from selenium.webdriver.common.by import By
 from selenium.common.exceptions import NoSuchElementException
+from OTPReader import OTPReader
 
-class AuthVFS: 
+
+class AuthVFS:
     # default constructor
     def __init__(self, args, jwt):
         self.args = args
         self.jwt = jwt
+        self._otp_reader = None
 
     def create_driver(self):
         options = webdriver.ChromeOptions()
@@ -19,14 +23,23 @@ class AuthVFS:
         # Initializing the driver client.
         self.driver = webdriver.Chrome(options=options)
 
+    def _get_otp_reader(self):
+        """Return a connected OTPReader, creating one if needed."""
+        if self._otp_reader is None:
+            otp_config = self.args.get("otp", {})
+            reader = OTPReader(otp_config)
+            reader.connect()  # Raises on failure — caller should handle
+            self._otp_reader = reader
+        return self._otp_reader
+
     def get_loggedin(self, args, driver):
         try:
             # Find the elements in the page.
-            email    = driver.find_element_by_xpath(args["email_id"])
-            password = driver.find_element_by_xpath(args["password_id"])
-            submit   = driver.find_element_by_xpath(args["submit"])
+            email    = driver.find_element(By.XPATH, args["email_id"])
+            password = driver.find_element(By.XPATH, args["password_id"])
+            submit   = driver.find_element(By.XPATH, args["submit"])
         except NoSuchElementException:
-            # If any of the elements aren"t there, return false.
+            # If any of the elements aren't there, return false.
             return False
 
         # Fill up the form fields with necessary credentials.
@@ -35,10 +48,41 @@ class AuthVFS:
         time.sleep(self.args["avrg_delay"])
         # Submit the form.
         submit.click()
-        # Wait 10 seconds for the response to come.
+        # Wait for the response to come.
         time.sleep(self.args["avrg_delay"])
         # Return the driver instance.
         return driver
+
+    def wait_for_otp(self):
+        """Fetch OTP via configured method (currently: email IMAP)."""
+        otp_config = self.args.get("otp", {})
+        poll_interval = otp_config.get("poll_interval", 5)
+        try:
+            reader = self._get_otp_reader()
+        except Exception as e:
+            print(f"Warning: could not connect to IMAP server: {e}", flush=True)
+            self._otp_reader = None  # Reset so next call retries the connection
+            return None
+        return reader.wait_for_otp(
+            poll_interval=poll_interval,
+            login_time=datetime.now(timezone.utc),
+        )
+
+    def enter_otp(self, otp_code, driver):
+        """Type the OTP code into the OTP input field and submit."""
+        args = self.args
+        try:
+            otp_input = driver.find_element(By.XPATH, args["otp_input"])
+            otp_input.clear()
+            otp_input.send_keys(otp_code)
+            time.sleep(1)
+            otp_submit = driver.find_element(By.XPATH, args["otp_submit"])
+            otp_submit.click()
+            time.sleep(self.args["avrg_delay"])
+            return True
+        except NoSuchElementException:
+            print("Warning: OTP input field not found on page — retrying login from the start.")
+            return False
 
     def get_jwt(self, args):
         driver = self.driver
@@ -46,22 +90,33 @@ class AuthVFS:
             try:
                 # Initiate the GET request.
                 driver.get(args["url"])
-            except:
+            except Exception:
                 return False
 
             # Let the page load fully.
-            time.sleep(self.args["avrg_delay"]) # Waitng 10 seconds.
-            driver = self.get_loggedin(args, driver);
+            time.sleep(self.args["avrg_delay"])
+            driver = self.get_loggedin(args, driver)
+
+            # OTP step
+            if self.args.get("otp", {}).get("enabled", False):
+                otp_code = self.wait_for_otp()
+                if otp_code:
+                    self.enter_otp(otp_code, driver)
+                else:
+                    print("Warning: OTP not received, retrying login...")
+                    continue
+
+            time.sleep(self.args["avrg_delay"])
 
             try:
-                driver.find_elements_by_xpath(args["ensure_login"])
+                driver.find_elements(By.XPATH, args["ensure_login"])
                 jwt = driver.execute_script("return window.sessionStorage.JWT")
                 if not isinstance(jwt, str) or len(jwt) < 10:
                     jwt = driver.execute_script("return window.localStorage.JWT")
                 if not isinstance(jwt, str) or len(jwt) < 10:
                     print("Warning: could not retrieve a valid JWT from sessionStorage or localStorage.")
                     continue
-            except:
+            except Exception:
                 continue
 
             if isinstance(jwt, str) and 10 < len(jwt):

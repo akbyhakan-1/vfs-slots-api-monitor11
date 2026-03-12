@@ -6,6 +6,7 @@
     "loginUser": "YOUR_EMAIL",
     "payCode": "",
     "roleName": "Individual",
+    "booking_url": "https://visa.vfsglobal.com/tur/tr/nld/book-appointment",
     "centers": [
         {"name": "Ankara", "vacCode": "NANKA"},
         {"name": "Antalya", "vacCode": "NANT"},
@@ -22,5 +23,10 @@
     },
     "sound": "./alert.mp3",
     "delay_between_centers": 3,
-    "delay_between_rounds": 30
+    "delay_between_rounds": 30,
+    "telegram": {
+        "enabled": true,
+        "bot_token": "YOUR_TELEGRAM_BOT_TOKEN",
+        "chat_id": "YOUR_TELEGRAM_CHAT_ID"
+    }
 }
