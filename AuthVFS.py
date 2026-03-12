@@ -69,13 +69,47 @@ class AuthVFS:
         )
 
     def enter_otp(self, otp_code, driver):
-        """Type the OTP code into the OTP input field and submit."""
+        """Type the OTP code into the OTP input field, handle Cloudflare checkbox, and submit."""
         args = self.args
         try:
+            # 1. Enter OTP code
             otp_input = driver.find_element(By.XPATH, args["otp_input"])
             otp_input.clear()
             otp_input.send_keys(otp_code)
             time.sleep(1)
+
+            # 2. Cloudflare checkbox'a tıkla (varsa)
+            try:
+                cloudflare_xpath = args.get("cloudflare_checkbox", "//input[@type='checkbox']")
+                # Cloudflare checkbox iframe içinde olabilir
+                iframes = driver.find_elements(By.TAG_NAME, "iframe")
+                clicked = False
+                for iframe in iframes:
+                    try:
+                        driver.switch_to.frame(iframe)
+                        checkbox = driver.find_element(By.XPATH, cloudflare_xpath)
+                        checkbox.click()
+                        clicked = True
+                        driver.switch_to.default_content()
+                        break
+                    except Exception:
+                        driver.switch_to.default_content()
+                        continue
+
+                if not clicked:
+                    # Try in main page
+                    try:
+                        checkbox = driver.find_element(By.XPATH, cloudflare_xpath)
+                        checkbox.click()
+                    except NoSuchElementException:
+                        pass  # Cloudflare checkbox not present, skip
+
+                time.sleep(2)  # Wait for Cloudflare verification
+            except Exception as e:
+                print(f"Note: Cloudflare checkbox handling: {e}")
+                driver.switch_to.default_content()
+
+            # 3. Click the submit button
             otp_submit = driver.find_element(By.XPATH, args["otp_submit"])
             otp_submit.click()
             time.sleep(self.args["avrg_delay"])
