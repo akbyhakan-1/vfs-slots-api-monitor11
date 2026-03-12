@@ -12,3 +12,4 @@ countries/*/ping_creds.json
 countries/*/auth.txt
 countries/*/output.txt
 dashboard_status.json
+telegram_config.json

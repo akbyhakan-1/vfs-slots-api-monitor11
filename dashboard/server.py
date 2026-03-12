@@ -6,12 +6,15 @@ Serves:
   GET  /                           → dashboard/index.html
   GET  /api/status                 → ../dashboard_status.json
   GET  /api/countries              → list configured countries
+  GET  /api/config/telegram        → get global telegram config
+  POST /api/config/telegram        → save global telegram config
+  POST /api/config/telegram/test   → send global Telegram test message
   GET  /api/config/<code>/auth     → get auth_creds.json (masked)
   GET  /api/config/<code>/ping     → get ping_creds.json
   POST /api/config/<code>/auth     → save auth_creds.json
   POST /api/config/<code>/ping     → save ping_creds.json
   DELETE /api/config/<code>        → delete country config directory
-  POST /api/config/<code>/test-telegram → send Telegram test message
+  POST /api/config/<code>/test-telegram → send per-country Telegram test message
   POST /api/process/<code>/start   → start AuthVFS + PingVFS subprocesses
   POST /api/process/<code>/stop    → stop both subprocesses
   GET  /api/process/status         → return running status for all countries
@@ -41,6 +44,7 @@ ROOT_DIR = os.path.dirname(SCRIPT_DIR)
 INDEX_HTML = os.path.join(SCRIPT_DIR, "index.html")
 STATUS_JSON = os.path.join(ROOT_DIR, "dashboard_status.json")
 COUNTRIES_DIR = os.path.join(ROOT_DIR, "countries")
+TELEGRAM_CONFIG_PATH = os.path.join(ROOT_DIR, "telegram_config.json")
 
 PORT = 8080
 MASKED_PREFIX = "****"
@@ -322,7 +326,9 @@ class Handler(BaseHTTPRequestHandler):
 
         elif path.startswith("/api/config/"):
             parts = path[len("/api/config/"):].strip("/").split("/")
-            if len(parts) == 2:
+            if len(parts) == 1 and parts[0] == "telegram":
+                self._get_global_telegram()
+            elif len(parts) == 2:
                 code, cfg_type = parts
                 if cfg_type == "auth":
                     self._get_config(code, "auth_creds.json", mask=True)
@@ -367,9 +373,13 @@ class Handler(BaseHTTPRequestHandler):
 
         if path.startswith("/api/config/"):
             parts = path[len("/api/config/"):].strip("/").split("/")
-            if len(parts) == 2:
+            if len(parts) == 1 and parts[0] == "telegram":
+                self._save_global_telegram(body)
+            elif len(parts) == 2:
                 code, action = parts
-                if action == "auth":
+                if code == "telegram" and action == "test":
+                    self._test_global_telegram()
+                elif action == "auth":
                     self._save_config(code, "auth_creds.json", body,
                                       masked_fields=["pass", "otp.email_pass"])
                 elif action == "ping":
@@ -523,6 +533,66 @@ class Handler(BaseHTTPRequestHandler):
         try:
             country_name = ping.get("country_name", code.upper())
             message = f"✅ VFS Slot Monitor — Test message ({country_name})"
+            url = f"https://api.telegram.org/bot{bot_token}/sendMessage"
+            payload = json.dumps({"chat_id": chat_id, "text": message}).encode("utf-8")
+            req = urllib.request.Request(
+                url, data=payload,
+                headers={"Content-Type": "application/json"}
+            )
+            with urllib.request.urlopen(req, timeout=10) as resp:
+                result = json.loads(resp.read().decode("utf-8"))
+            if result.get("ok"):
+                self._json({"success": True, "message": "Test mesajı gönderildi!"})
+            else:
+                self._error("Telegram API hatası: " + json.dumps(result), 400)
+        except Exception as e:
+            self._error("Telegram gönderilemedi: " + str(e), 500)
+
+    def _get_global_telegram(self):
+        if not os.path.isfile(TELEGRAM_CONFIG_PATH):
+            self._json({"enabled": False, "bot_token": "", "chat_id": ""})
+            return
+        try:
+            with open(TELEGRAM_CONFIG_PATH, "r", encoding="utf-8") as f:
+                config = json.load(f)
+            self._json(config)
+        except Exception as e:
+            self._error(str(e), 500)
+
+    def _save_global_telegram(self, data):
+        try:
+            with open(TELEGRAM_CONFIG_PATH, "w", encoding="utf-8") as f:
+                json.dump(data, f, ensure_ascii=False, indent=4)
+            self._json({"success": True})
+        except Exception as e:
+            self._error(str(e), 500)
+
+    def _test_global_telegram(self):
+        if not os.path.isfile(TELEGRAM_CONFIG_PATH):
+            self._error("Global Telegram config bulunamadı", 404)
+            return
+        try:
+            with open(TELEGRAM_CONFIG_PATH, "r", encoding="utf-8") as f:
+                tg = json.load(f)
+        except Exception as e:
+            self._error("Config okunamadı: " + str(e), 500)
+            return
+
+        if not tg.get("enabled"):
+            self._error("Telegram etkin değil", 400)
+            return
+
+        bot_token = tg.get("bot_token", "")
+        chat_id = str(tg.get("chat_id", ""))
+        if not bot_token or not chat_id:
+            self._error("Bot token veya Chat ID eksik", 400)
+            return
+        if bot_token.startswith("YOUR_") or chat_id.startswith("YOUR_"):
+            self._error("Gerçek Telegram kimlik bilgilerini yapılandırın", 400)
+            return
+
+        try:
+            message = "✅ VFS Slot Monitor — Global Telegram test mesajı"
             url = f"https://api.telegram.org/bot{bot_token}/sendMessage"
             payload = json.dumps({"chat_id": chat_id, "text": message}).encode("utf-8")
             req = urllib.request.Request(
