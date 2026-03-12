@@ -1216,6 +1216,39 @@ function renderCenters(centers) {
   }).join('');
 }
 
+function renderEmptyCountryCards(countries) {
+  if (!countries || countries.length === 0) return null;
+  return countries.map(c => {
+    const code       = c.code;
+    const flag       = FLAG_MAP[code] || '🌍';
+    const name       = c.name || code.toUpperCase();
+    const procInfo   = _procStatus[code] || {};
+    const running    = !!procInfo.running;
+    const dotClass   = running ? 'proc-status-dot running' : 'proc-status-dot';
+    const statusText = running ? 'Çalışıyor' : 'Durduruldu';
+    const statusCls  = running ? 'proc-status-text running' : 'proc-status-text';
+    const startBtn   = running
+      ? '<button class="btn-proc stop"  onclick="stopCountry(\'' + code + '\')" id="proc-btn-' + code + '">⏹️ Durdur</button>'
+      : '<button class="btn-proc start" onclick="startCountry(\'' + code + '\')" id="proc-btn-' + code + '">▶️ Başlat</button>';
+    return '<div class="card" id="card-' + code + '">' +
+      '<div class="card-header">' +
+        '<span class="card-flag">' + flag + '</span>' +
+        '<div class="card-info">' +
+          '<div class="card-title">' + name + '</div>' +
+          '<div class="card-sub">Merkez verisi bekleniyor…</div>' +
+        '</div>' +
+      '</div>' +
+      '<div class="centers"></div>' +
+      '<div class="card-footer">' +
+        '<span class="' + dotClass + '" id="proc-dot-' + code + '"></span>' +
+        '<span class="' + statusCls + '" id="proc-status-text-' + code + '">' + statusText + '</span>' +
+        startBtn +
+        '<button class="btn-proc log" onclick="openLogModal(\'' + code + '\',\'' + name + '\')">📋 Loglar</button>' +
+      '</div>' +
+      '</div>';
+  }).join('');
+}
+
 function renderGrid(data) {
   const countries = data.countries || {};
   const codes = Object.keys(countries);
@@ -1272,6 +1305,21 @@ async function refresh() {
   const lastEl    = document.getElementById('last-updated');
   loadingEl.style.display = 'none';
   if (!data || !data.countries || Object.keys(data.countries).length === 0) {
+    // Status data is empty — try to show defined countries with minimal cards
+    try {
+      const res = await fetch('/api/countries?t=' + Date.now());
+      if (res.ok) {
+        const countriesData = await res.json();
+        const countries = countriesData.countries || [];
+        if (countries.length > 0) {
+          emptyEl.style.display = 'none';
+          gridEl.style.display  = 'grid';
+          gridEl.innerHTML = renderEmptyCountryCards(countries);
+          applyProcStatusToCards();
+          return;
+        }
+      }
+    } catch(e) { console.warn('Countries fetch failed:', e); }
     emptyEl.style.display = 'block';
     gridEl.style.display  = 'none';
     return;
