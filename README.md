@@ -1,18 +1,22 @@
 # VFS slots API monitor
 These are some **Python 3** scripts written for monitoring the VFS visa application slots API. **Selenium** with **ChromeDriver(webdriver)** used for collecting the JWT, **tmux** used for the UX and **tail** utility used for printing the output in the terminal.
 
-Configured for **Turkey → Netherlands (Tourism Visa)** — monitors all 8 application centres automatically.
+Supports multiple countries simultaneously — currently configured for **Netherlands** and **Croatia** (Turkey applicants).
 
 ![Screenshot](screenshot.png)
 
 ## Features
 
+- 🌍 **Multi-country support** — monitor Netherlands, Croatia, or any VFS country in parallel
 - 🔐 Automatic OTP reading via Gmail IMAP (VFS now requires OTP on every login)
 - 📲 Telegram notifications when a slot is found
 - 🔊 Desktop notification + sound alert on slot found
-- 🔄 Monitors all 8 Turkish VFS centres in a loop
+- 🖥️ **Web dashboard** — real-time status for all countries at `http://localhost:8080`
+- 🔄 Monitors all configured VFS centres in a loop
 
 ## Application Centres
+
+### Netherlands (nld)
 
 | # | Centre | vacCode |
 |---|---|---|
@@ -24,6 +28,15 @@ Configured for **Turkey → Netherlands (Tourism Visa)** — monitors all 8 appl
 | 6 | Istanbul (Altunizade) | `NALT` |
 | 7 | Istanbul (Istinye) | `NISTA` |
 | 8 | Izmir | `ADB` |
+
+### Croatia (hrv)
+
+> ⚠️ **Note:** The vacCodes below are placeholders. Check the actual codes on the VFS Global portal for Croatia (Turkey applicants) and update `countries/hrv/ping_creds.json` accordingly.
+
+| # | Centre | vacCode |
+|---|---|---|
+| 1 | Ankara | `HANKA` *(placeholder)* |
+| 2 | Istanbul | `HIST` *(placeholder)* |
 
 ## Installation
 
@@ -42,20 +55,40 @@ pip install -r requirements.txt
 
 ## Configuration
 
+### Directory structure
+
+```
+countries/
+├── nld/
+│   ├── auth_creds.json    ← copy from countries/nld/auth_creds.json and fill in
+│   ├── ping_creds.json    ← copy from countries/nld/ping_creds.json and fill in
+│   ├── auth.txt           ← auto-generated (JWT token)
+│   └── output.txt         ← auto-generated (log)
+└── hrv/
+    ├── auth_creds.json
+    ├── ping_creds.json
+    ├── auth.txt
+    └── output.txt
+```
+
+Each `countries/<code>/auth_creds.json` and `countries/<code>/ping_creds.json` file follows the same format as the root-level example files, but also includes `country_name` and `country_code` fields, and paths point to `./countries/<code>/auth.txt` etc.
+
 ### `auth_creds.json` — Login credentials with OTP
 
 ```json
 {
+    "country_name": "Netherlands",
+    "country_code": "nld",
     "url": "https://visa.vfsglobal.com/tur/tr/nld/login",
-    "email_id": "//*[@id=\"mat-input-0\"]",
-    "password_id": "//*[@id=\"mat-input-1\"]",
+    "email_id": "//*[@id='email']",
+    "password_id": "//*[@id='password']",
     "ensure_login": "//*[contains(text(), 'Start New Booking')]",
-    "submit": "//*[contains(text(), 'Sign In')]",
-    "otp_input": "//*[@id=\"mat-input-2\"]",
-    "otp_submit": "//*[contains(text(), 'Verify')]",
+    "submit": "//button[contains(.,'Oturum')]",
+    "otp_input": "//input[contains(@id, 'mat-input')]",
+    "otp_submit": "//button[contains(.,'Oturum')]",
     "user": "YOUR_VFS_EMAIL",
     "pass": "YOUR_VFS_PASSWORD",
-    "auth_path": "./auth.txt",
+    "auth_path": "./countries/nld/auth.txt",
     "refr_delay": 600,
     "avrg_delay": 10,
     "otp": {
@@ -77,6 +110,8 @@ pip install -r requirements.txt
 
 ```json
 {
+    "country_name": "Netherlands",
+    "country_code": "nld",
     "api_url": "https://lift-api.vfsglobal.com/appointment/CheckIsSlotAvailable",
     "countryCode": "tur",
     "missionCode": "nld",
@@ -87,17 +122,11 @@ pip install -r requirements.txt
     "booking_url": "https://visa.vfsglobal.com/tur/tr/nld/book-appointment",
     "centers": [
         {"name": "Ankara", "vacCode": "NANKA"},
-        {"name": "Antalya", "vacCode": "NANT"},
-        {"name": "Bursa", "vacCode": "NBUR"},
-        {"name": "Edirne", "vacCode": "NEDIE"},
-        {"name": "Gaziantep", "vacCode": "NGAZ"},
-        {"name": "Istanbul (Altunizade)", "vacCode": "NALT"},
-        {"name": "Istanbul (Istinye)", "vacCode": "NISTA"},
-        {"name": "Izmir", "vacCode": "ADB"}
+        {"name": "Istanbul (Istinye)", "vacCode": "NISTA"}
     ],
     "paths": {
-        "auth": "./auth.txt",
-        "output": "./output.txt"
+        "auth": "./countries/nld/auth.txt",
+        "output": "./countries/nld/output.txt"
     },
     "sound": "./alert.mp3",
     "delay_between_centers": 3,
@@ -111,7 +140,7 @@ pip install -r requirements.txt
 ```
 
 - `delay_between_centers` — seconds to wait between each centre query (default: 3)
-- `delay_between_rounds` — seconds to wait between full rounds of all 8 centres (default: 30)
+- `delay_between_rounds` — seconds to wait between full rounds of all centres (default: 30)
 - `booking_url` — URL sent in Telegram notifications for quick access to the booking page
 
 ## OTP Setup (Gmail IMAP)
@@ -176,26 +205,68 @@ When a slot is found, a Telegram message is sent automatically:
 
 ## Usage
 
+### Single country (backward compatible)
+
 ```bash
-# 1. Clone the repository
+# Legacy mode — reads from root-level auth_creds.json / ping_creds.json
+python3 AuthVFS.py
+python3 PingVFS.py
+
+# Per-country mode — reads from countries/<code>/
+python3 AuthVFS.py --country nld
+python3 PingVFS.py --country nld
+
+python3 AuthVFS.py --country hrv
+python3 PingVFS.py --country hrv
+```
+
+### All countries at once
+
+```bash
+python3 run_all.py
+```
+
+`run_all.py` scans `countries/*/` for valid config pairs and launches `AuthVFS.py` + `PingVFS.py` for each country in separate threads.
+
+### Web Dashboard
+
+```bash
+python3 dashboard/server.py
+```
+
+Then open **http://localhost:8080** in your browser. The dashboard:
+- Shows all monitored countries as cards
+- Color-codes each centre: 🟢 slot found, 🔴 no slot, 🟡 waitlist/error, ⚪ not yet checked
+- Auto-refreshes every 10 seconds
+- Shows earliest available date when a slot is found
+- Works on mobile (responsive)
+- Dark theme, Turkish UI
+
+The dashboard reads `dashboard_status.json` in the project root, which is updated by `PingVFS.py` after every centre check.
+
+### Full setup example (Netherlands + Croatia)
+
+```bash
+# 1. Clone
 git clone https://github.com/akbyhakan-1/vfs-slots-api-monitor11.git
 cd vfs-slots-api-monitor11
 
 # 2. Install dependencies
 pip install -r requirements.txt
 
-# 3. Rename and fill in your credentials
-cp example.auth_creds.json auth_creds.json
-cp example.ping_creds.json ping_creds.json
-# Edit auth_creds.json and ping_creds.json with your credentials
+# 3. Edit configs for each country (the example files are committed to the repo)
+# Edit countries/nld/auth_creds.json — set user, pass, email credentials
+# Edit countries/nld/ping_creds.json — set loginUser, telegram config
+# Edit countries/hrv/auth_creds.json and countries/hrv/ping_creds.json similarly
 
-# 4. Get the JWT token first (Chrome will open automatically)
-python3 AuthVFS.py
+# 4. Run everything
+python3 run_all.py
 
-# 5. In another terminal, start slot monitoring
-python3 PingVFS.py
+# 5. Open dashboard
+python3 dashboard/server.py
+# → http://localhost:8080
 
-# OR run everything together with tmux
+# OR run with tmux
 chmod +x monitor
 ./monitor
 ```
@@ -214,7 +285,8 @@ When a slot is found:
 - A desktop notification (`notify-send`) is shown with the centre name and earliest date
 - The alert sound (`alert.mp3`) is played
 - A Telegram message is sent (if configured)
-- All results are saved to `output.txt`
+- All results are saved to `countries/<code>/output.txt`
+- The dashboard is updated in real-time
 
 ## License
 Copyright (c) 2021 [CodeMascot](https://www.codemascot.com/) AKA [Khan Mohammad R.](https://www.codemascot.com/)

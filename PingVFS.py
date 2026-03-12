@@ -3,11 +3,13 @@ import os
 import sys
 import time
 import json
+import argparse
 import requests
 import subprocess
 import platform
 from datetime import datetime
 from TelegramNotifier import TelegramNotifier
+from StatusWriter import update_center
 
 MIN_JWT_LENGTH = 10
 
@@ -44,6 +46,8 @@ class PingVFS:
         self.delay_between_centers = params.get("delay_between_centers", 3)
         self.delay_between_rounds = params.get("delay_between_rounds", 30)
         self.booking_url = params.get("booking_url", "https://visa.vfsglobal.com/tur/tr/nld/book-appointment")
+        self.country_name = params.get("country_name", self.mission_code.upper())
+        self.login_url = params.get("login_url", "")
 
         telegram_config = params.get("telegram", {})
         if telegram_config.get("enabled", False):
@@ -134,7 +138,7 @@ class PingVFS:
         print("\n")
         print("Started at:", end=" ")
         print(datetime.now())
-        print("Monitoring VFS appointment slots for Turkey → Netherlands (Tourism)...")
+        print(f"Monitoring VFS appointment slots for Turkey → {self.country_name} (Tourism)...")
         print("Centers:", ", ".join(c["name"] for c in self.centers))
         print("\n")
 
@@ -151,6 +155,7 @@ class PingVFS:
                 if err:
                     result_str = f"[{now_str}] {center['name']} → {err}"
                     status = "ERROR"
+                    earliest_date = None
                 else:
                     status, earliest_date = self.evaluate_response(resp)
                     if status == "SLOT_FOUND":
@@ -162,6 +167,22 @@ class PingVFS:
 
                 print(result_str)
                 self.store_output(result_str + "\n")
+
+                # Write result to dashboard status file
+                dash_status = status.lower() if status else "no_slot"
+                try:
+                    update_center(
+                        country_code=self.mission_code,
+                        country_name=self.country_name,
+                        login_url=self.login_url,
+                        booking_url=self.booking_url,
+                        center_name=center["name"],
+                        vac_code=center["vacCode"],
+                        status=dash_status,
+                        earliest_date=earliest_date,
+                    )
+                except Exception as sw_err:
+                    print(f"Warning: StatusWriter error: {sw_err}")
 
                 if status == "SLOT_FOUND":
                     msg = f"Slot available at {center['name']}! Earliest: {earliest_date}"
@@ -205,4 +226,17 @@ def main(params):
     ping.init()
 
 if __name__ == "__main__":
-    main("./ping_creds.json")
+    parser = argparse.ArgumentParser(description="VFS slot monitor")
+    parser.add_argument(
+        "--country",
+        help="Country code to monitor (e.g. nld, hrv). Reads from countries/<code>/ping_creds.json",
+        default=None,
+    )
+    args = parser.parse_args()
+
+    if args.country:
+        creds_path = f"./countries/{args.country}/ping_creds.json"
+    else:
+        creds_path = "./ping_creds.json"
+
+    main(creds_path)

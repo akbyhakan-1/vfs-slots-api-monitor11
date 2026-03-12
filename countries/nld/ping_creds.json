@@ -1,0 +1,35 @@
+{
+    "country_name": "Netherlands",
+    "country_code": "nld",
+    "api_url": "https://lift-api.vfsglobal.com/appointment/CheckIsSlotAvailable",
+    "countryCode": "tur",
+    "missionCode": "nld",
+    "visaCategoryCode": "NSTOURISM",
+    "loginUser": "YOUR_EMAIL",
+    "payCode": "",
+    "roleName": "Individual",
+    "booking_url": "https://visa.vfsglobal.com/tur/tr/nld/book-appointment",
+    "login_url": "https://visa.vfsglobal.com/tur/tr/nld/login",
+    "centers": [
+        {"name": "Ankara", "vacCode": "NANKA"},
+        {"name": "Antalya", "vacCode": "NANT"},
+        {"name": "Bursa", "vacCode": "NBUR"},
+        {"name": "Edirne", "vacCode": "NEDIE"},
+        {"name": "Gaziantep", "vacCode": "NGAZ"},
+        {"name": "Istanbul (Altunizade)", "vacCode": "NALT"},
+        {"name": "Istanbul (Istinye)", "vacCode": "NISTA"},
+        {"name": "Izmir", "vacCode": "ADB"}
+    ],
+    "paths": {
+        "auth": "./countries/nld/auth.txt",
+        "output": "./countries/nld/output.txt"
+    },
+    "sound": "./alert.mp3",
+    "delay_between_centers": 3,
+    "delay_between_rounds": 30,
+    "telegram": {
+        "enabled": true,
+        "bot_token": "YOUR_TELEGRAM_BOT_TOKEN",
+        "chat_id": "YOUR_TELEGRAM_CHAT_ID"
+    }
+}

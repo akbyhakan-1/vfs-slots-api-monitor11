@@ -1,0 +1,29 @@
+{
+    "country_name": "Netherlands",
+    "country_code": "nld",
+    "url": "https://visa.vfsglobal.com/tur/tr/nld/login",
+    "email_id": "//*[@id='email']",
+    "password_id": "//*[@id='password']",
+    "ensure_login": "//*[contains(text(), 'Start New Booking')]",
+    "submit": "//button[contains(.,'Oturum')]",
+    "otp_input": "//input[contains(@id, 'mat-input')]",
+    "otp_submit": "//button[contains(.,'Oturum')]",
+    "cloudflare_checkbox": "//input[@type='checkbox']",
+    "user": "YOUR_VFS_EMAIL",
+    "pass": "YOUR_VFS_PASSWORD",
+    "auth_path": "./countries/nld/auth.txt",
+    "refr_delay": 600,
+    "avrg_delay": 10,
+    "otp": {
+        "enabled": true,
+        "method": "email",
+        "imap_server": "imap.gmail.com",
+        "imap_port": 993,
+        "email_user": "YOUR_GMAIL_ADDRESS",
+        "email_pass": "YOUR_GMAIL_APP_PASSWORD",
+        "sender_filter": "donotreply@vfshelpline.com",
+        "subject_filter": "One Time Password",
+        "otp_timeout": 300,
+        "poll_interval": 5
+    }
+}

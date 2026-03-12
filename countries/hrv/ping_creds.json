@@ -1,0 +1,29 @@
+{
+    "country_name": "Croatia",
+    "country_code": "hrv",
+    "api_url": "https://lift-api.vfsglobal.com/appointment/CheckIsSlotAvailable",
+    "countryCode": "tur",
+    "missionCode": "hrv",
+    "visaCategoryCode": "NSTOURISM",
+    "loginUser": "YOUR_EMAIL",
+    "payCode": "",
+    "roleName": "Individual",
+    "booking_url": "https://visa.vfsglobal.com/tur/tr/hrv/book-appointment",
+    "login_url": "https://visa.vfsglobal.com/tur/tr/hrv/login",
+    "centers": [
+        {"name": "Ankara", "vacCode": "HANKA"},
+        {"name": "Istanbul", "vacCode": "HIST"}
+    ],
+    "paths": {
+        "auth": "./countries/hrv/auth.txt",
+        "output": "./countries/hrv/output.txt"
+    },
+    "sound": "./alert.mp3",
+    "delay_between_centers": 3,
+    "delay_between_rounds": 30,
+    "telegram": {
+        "enabled": true,
+        "bot_token": "YOUR_TELEGRAM_BOT_TOKEN",
+        "chat_id": "YOUR_TELEGRAM_CHAT_ID"
+    }
+}
