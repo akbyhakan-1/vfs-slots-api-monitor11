@@ -45,6 +45,11 @@ COUNTRIES_DIR = os.path.join(ROOT_DIR, "countries")
 PORT = 8080
 MASKED_PREFIX = "****"
 
+# ── Process manager constants ─────────────────────────────────────────────────
+LOG_BUFFER_SIZE = 200          # max lines kept per process log
+STATUS_LOG_PREVIEW = 50        # lines returned in /api/process/status
+PROCESS_TERMINATE_TIMEOUT = 3  # seconds to wait after terminate() before kill()
+
 
 # ── Process manager ───────────────────────────────────────────────────────────
 
@@ -108,8 +113,8 @@ def process_start(code):
             # Dead processes: clean up and allow restart
             _processes.pop(code)
 
-        auth_log: collections.deque = collections.deque(maxlen=200)
-        ping_log: collections.deque = collections.deque(maxlen=200)
+        auth_log: collections.deque = collections.deque(maxlen=LOG_BUFFER_SIZE)
+        ping_log: collections.deque = collections.deque(maxlen=LOG_BUFFER_SIZE)
 
         try:
             auth_proc = subprocess.Popen(
@@ -172,7 +177,7 @@ def process_stop(code):
         if proc.poll() is None:
             try:
                 proc.terminate()
-                proc.wait(timeout=3)
+                proc.wait(timeout=PROCESS_TERMINATE_TIMEOUT)
             except Exception:
                 pass
         if proc.poll() is None:
@@ -200,8 +205,8 @@ def get_all_process_status():
                 "auth_pid": auth_proc.pid if auth_proc else None,
                 "ping_pid": ping_proc.pid if ping_proc else None,
                 "started_at": info.get("started_at", ""),
-                "auth_log": list(info["auth_log"])[-50:],
-                "ping_log": list(info["ping_log"])[-50:],
+                "auth_log": list(info["auth_log"])[-STATUS_LOG_PREVIEW:],
+                "ping_log": list(info["ping_log"])[-STATUS_LOG_PREVIEW:],
             }
         return result
 

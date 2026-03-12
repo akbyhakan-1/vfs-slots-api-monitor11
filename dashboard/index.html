@@ -1224,6 +1224,9 @@ refresh().then(startCountdown);
    PROCESS MANAGER
 ═══════════════════════════════════════════════════════════ */
 
+const PROC_STATUS_POLL_INTERVAL = 5000;  // ms between /api/process/status polls
+const LOG_REFRESH_INTERVAL      = 3000;  // ms between log auto-refreshes
+
 let _procStatus = {};       // country_code → {running, auth_pid, ping_pid, ...}
 let _logModalCode = null;   // currently open log modal country
 let _logRefreshTimer = null;
@@ -1269,7 +1272,7 @@ function applyProcStatusToCards() {
 }
 
 // Poll every 5 seconds
-setInterval(fetchProcStatus, 5000);
+setInterval(fetchProcStatus, PROC_STATUS_POLL_INTERVAL);
 fetchProcStatus();
 
 async function startCountry(code) {
@@ -1307,10 +1310,16 @@ async function startAll() {
     const res  = await fetch('/api/countries');
     const data = await res.json();
     const codes = (data.countries || []).map(c => c.code);
+    const errors = [];
     for (const code of codes) {
-      await fetch('/api/process/' + code + '/start', { method: 'POST' });
+      const r = await fetch('/api/process/' + code + '/start', { method: 'POST' });
+      if (!r.ok) {
+        const d = await r.json();
+        if (d.error !== 'already running') errors.push(code + ': ' + (d.error || 'hata'));
+      }
     }
-    showToast('✅ Tüm ülkeler başlatıldı!', 'success');
+    if (errors.length > 0) showToast('⚠️ Bazı hatalar: ' + errors.join('; '), 'error');
+    else showToast('✅ Tüm ülkeler başlatıldı!', 'success');
   } catch(e) {
     showToast('❌ Hata: ' + e.message, 'error');
   }
@@ -1323,10 +1332,16 @@ async function stopAll() {
   btn.disabled = true;
   try {
     const codes = Object.keys(_procStatus);
+    const errors = [];
     for (const code of codes) {
-      await fetch('/api/process/' + code + '/stop', { method: 'POST' });
+      const r = await fetch('/api/process/' + code + '/stop', { method: 'POST' });
+      if (!r.ok) {
+        const d = await r.json();
+        errors.push(code + ': ' + (d.error || 'hata'));
+      }
     }
-    showToast('✅ Tüm süreçler durduruldu.', 'success');
+    if (errors.length > 0) showToast('⚠️ Bazı hatalar: ' + errors.join('; '), 'error');
+    else showToast('✅ Tüm süreçler durduruldu.', 'success');
   } catch(e) {
     showToast('❌ Hata: ' + e.message, 'error');
   }
@@ -1343,7 +1358,7 @@ function openLogModal(code, name) {
   loadLogs(code);
   _logRefreshTimer = setInterval(function() {
     if (_logModalCode) loadLogs(_logModalCode);
-  }, 3000);
+  }, LOG_REFRESH_INTERVAL);
 }
 
 function closeLogModal() {
