@@ -7,6 +7,7 @@ import requests
 import subprocess
 from playsound import playsound
 from datetime import datetime
+from TelegramNotifier import TelegramNotifier
 
 MIN_JWT_LENGTH = 10
 
@@ -27,6 +28,13 @@ class PingVFS:
         self.sound = params["sound"]
         self.delay_between_centers = params.get("delay_between_centers", 3)
         self.delay_between_rounds = params.get("delay_between_rounds", 30)
+        self.booking_url = params.get("booking_url", "https://visa.vfsglobal.com/tur/tr/nld/book-appointment")
+
+        telegram_config = params.get("telegram", {})
+        if telegram_config.get("enabled", False):
+            self.telegram = TelegramNotifier(telegram_config)
+        else:
+            self.telegram = None
 
     def get_auth_token(self):
         if not os.path.isfile(self.paths["auth"]):
@@ -151,6 +159,17 @@ class PingVFS:
                         playsound(self.sound)
                     except Exception as e:
                         print(f"Warning: could not play alert sound: {e}")
+                    if self.telegram:
+                        # Extract applicant count from slot list if available
+                        slot_details = None
+                        if resp and resp.get("earliestSlotLists"):
+                            slot_details = resp["earliestSlotLists"][0].get("applicant")
+                        self.telegram.notify_slot_found(
+                            center_name=center["name"],
+                            earliest_date=earliest_date,
+                            booking_url=self.booking_url,
+                            slot_details=slot_details,
+                        )
 
                 time.sleep(self.delay_between_centers)
 
