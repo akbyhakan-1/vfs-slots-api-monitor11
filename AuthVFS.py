@@ -1,13 +1,13 @@
 #!/usr/bin/env python
 import os
 import time
+import random
 import json
 from datetime import datetime, timezone
 import undetected_chromedriver as uc
 from selenium.webdriver.common.by import By
 from selenium.common.exceptions import NoSuchElementException, InvalidSessionIdException
 from OTPReader import OTPReader
-from CaptchaSolver import CaptchaSolver
 
 
 class AuthVFS:
@@ -16,10 +16,6 @@ class AuthVFS:
         self.args = args
         self.jwt = jwt
         self._otp_reader = None
-        # Initialize 2Captcha solver if configured
-        captcha_config = args.get("captcha", {})
-        api_key = captcha_config.get("api_key", "")
-        self.captcha_solver = CaptchaSolver(api_key) if api_key else None
 
     def create_driver(self):
         self.safe_quit()
@@ -39,14 +35,11 @@ class AuthVFS:
         except Exception:
             pass
 
-    def wait_for_cloudflare(self, driver, timeout=120):
-        """Wait for Cloudflare verification page.
-        Falls back to 2Captcha if automatic verification fails."""
+    def wait_for_cloudflare(self, driver, timeout=20):
+        """Wait up to timeout seconds for Cloudflare verification to pass automatically."""
         start_time = time.time()
 
-        # Phase 1: Wait for automatic pass (15 seconds)
-        auto_timeout = min(timeout, 15)
-        while time.time() - start_time < auto_timeout:
+        while time.time() - start_time < timeout:
             try:
                 current_title = driver.title.lower()
             except (InvalidSessionIdException, Exception):
@@ -61,180 +54,8 @@ class AuthVFS:
             print("Waiting for Cloudflare verification...", flush=True)
             time.sleep(3)
 
-        # Phase 2: Try 2Captcha if available
-        if self.captcha_solver:
-            print("Automatic Cloudflare pass failed, trying 2Captcha...", flush=True)
-            result = self._solve_with_2captcha(driver)
-            if result:
-                # Wait for page to redirect after token injection
-                time.sleep(10)
-                # Check again
-                try:
-                    current_title = driver.title.lower()
-                    if "bir dakika" not in current_title and "just a moment" not in current_title:
-                        print("Cloudflare passed after 2Captcha!", flush=True)
-                        return True
-                except Exception:
-                    pass
-                # If still on Cloudflare, keep waiting
-                remaining = max(0, timeout - (time.time() - start_time))
-                wait_start = time.time()
-                while time.time() - wait_start < remaining:
-                    try:
-                        current_title = driver.title.lower()
-                        if "bir dakika" not in current_title and "just a moment" not in current_title:
-                            print("Cloudflare verification passed after 2Captcha!", flush=True)
-                            return True
-                    except Exception:
-                        pass
-                    time.sleep(3)
-
-        # Phase 3: Keep waiting until full timeout
-        while time.time() - start_time < timeout:
-            try:
-                current_title = driver.title.lower()
-            except (InvalidSessionIdException, Exception):
-                time.sleep(3)
-                continue
-
-            if "bir dakika" not in current_title and "just a moment" not in current_title:
-                print("Cloudflare verification passed.", flush=True)
-                return True
-
-            time.sleep(3)
-
-        print("Warning: Cloudflare verification timed out, reloading page...", flush=True)
+        print("Warning: Cloudflare verification timed out.", flush=True)
         return False
-
-    def _solve_with_2captcha(self, driver):
-        """Extract Turnstile sitekey from page and solve with 2Captcha."""
-        import re
-        import urllib.parse
-
-        try:
-            sitekey = None
-
-            # Method 1: Look for turnstile div with data-sitekey
-            try:
-                turnstile_divs = driver.find_elements(By.CSS_SELECTOR, "[data-sitekey]")
-                for div in turnstile_divs:
-                    sitekey = div.get_attribute("data-sitekey")
-                    if sitekey:
-                        break
-            except Exception:
-                pass
-
-            # Method 2: Look in iframe src
-            if not sitekey:
-                try:
-                    iframes = driver.find_elements(By.TAG_NAME, "iframe")
-                    for iframe in iframes:
-                        src = iframe.get_attribute("src") or ""
-                        if src:
-                            parsed_src = urllib.parse.urlparse(src)
-                            hostname = parsed_src.hostname or ""
-                            is_cf = (hostname == "challenges.cloudflare.com" or
-                                     hostname.endswith(".challenges.cloudflare.com"))
-                            if is_cf or "turnstile" in parsed_src.path:
-                                params = urllib.parse.parse_qs(parsed_src.query)
-                                if "k" in params:
-                                    sitekey = params["k"][0]
-                                break
-                except Exception:
-                    pass
-
-            # Method 3: Search page source for sitekey pattern
-            if not sitekey:
-                try:
-                    page_source = driver.page_source
-                    match = re.search(r'sitekey["\s:=]+["\']?(0x[0-9a-fA-F]+)', page_source)
-                    if match:
-                        sitekey = match.group(1)
-                except Exception:
-                    pass
-
-            if not sitekey:
-                print("2Captcha: Could not find Turnstile sitekey on page.", flush=True)
-                return None
-
-            print(f"2Captcha: Found sitekey: {sitekey[:20]}...", flush=True)
-
-            # Solve with 2Captcha
-            current_url = driver.current_url
-            token = self.captcha_solver.solve_turnstile(current_url, sitekey)
-
-            if not token:
-                return None
-
-            # Inject the solution token into the page
-            driver.execute_script("""
-                var token = arguments[0];
-
-                // Method 1: Set cf-turnstile-response inputs
-                var inputs = document.querySelectorAll('[name="cf-turnstile-response"]');
-                inputs.forEach(function(input) {
-                    input.value = token;
-                });
-
-                // Method 2: Find turnstile callback and call it
-                if (typeof window.turnstileCallback === 'function') {
-                    window.turnstileCallback(token);
-                }
-
-                // Method 3: Find all callbacks on window._cf_chl_opt or similar
-                var cbs = document.querySelectorAll('[data-callback]');
-                cbs.forEach(function(el) {
-                    var cbName = el.getAttribute('data-callback');
-                    if (typeof window[cbName] === 'function') {
-                        window[cbName](token);
-                    }
-                });
-
-                // Method 4: Try submitting the closest form
-                var forms = document.querySelectorAll('form');
-                forms.forEach(function(form) {
-                    var existing = form.querySelector('[name="cf-turnstile-response"]');
-                    if (!existing) {
-                        var hidden = document.createElement('input');
-                        hidden.type = 'hidden';
-                        hidden.name = 'cf-turnstile-response';
-                        hidden.value = token;
-                        form.appendChild(hidden);
-                    } else {
-                        existing.value = token;
-                    }
-                });
-
-                // Method 5: Directly call Turnstile API callback if available
-                try {
-                    var widgets = document.querySelectorAll('.cf-turnstile');
-                    widgets.forEach(function(w) {
-                        var cbName = w.getAttribute('data-callback');
-                        if (cbName && typeof window[cbName] === 'function') {
-                            window[cbName](token);
-                        }
-                    });
-                } catch(e) {}
-
-            """, token)
-
-            print("2Captcha: Token injected into page.", flush=True)
-            time.sleep(5)  # Wait for page to process token
-
-            # Check if Cloudflare passed
-            try:
-                current_title = driver.title.lower()
-                if "bir dakika" not in current_title and "just a moment" not in current_title:
-                    print("2Captcha: Cloudflare verification passed!", flush=True)
-                    return True
-            except Exception:
-                pass
-
-            return None
-
-        except Exception as e:
-            print(f"2Captcha: Error: {e}", flush=True)
-            return None
 
     def _get_otp_reader(self):
         """Return a connected OTPReader, creating one if needed."""
@@ -349,9 +170,15 @@ class AuthVFS:
                 continue
 
             # Wait for Cloudflare verification
-            if not self.wait_for_cloudflare(driver, timeout=60):
-                # If not passed, reload the page and retry
-                print("Cloudflare not passed, retrying...", flush=True)
+            if not self.wait_for_cloudflare(driver):
+                # Cloudflare not passed — recreate driver for a fresh fingerprint and retry
+                print("Cloudflare not passed, recreating driver for new fingerprint...", flush=True)
+                try:
+                    self.create_driver()
+                    driver = self.driver
+                except Exception as create_err:
+                    print(f"Warning: Could not recreate driver: {create_err}, retrying...", flush=True)
+                time.sleep(random.uniform(2, 5))
                 continue
 
             # Let the page load fully.

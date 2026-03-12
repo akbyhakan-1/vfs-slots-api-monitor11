@@ -12,10 +12,6 @@
     "auth_path":"./auth.txt",
     "refr_delay":600,
     "avrg_delay":10,
-    "captcha": {
-        "provider": "2captcha",
-        "api_key": "YOUR_2CAPTCHA_API_KEY"
-    },
     "otp": {
         "enabled": true,
         "method": "email",
