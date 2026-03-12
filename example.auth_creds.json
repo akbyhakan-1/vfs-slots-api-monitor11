@@ -1,5 +1,5 @@
 {
-    "url":"https://visa.vfsglobal.com/bgd/en/dnk/login",
+    "url":"https://visa.vfsglobal.com/tur/tr/nld/login",
     "email_id":"//*[@id=\"mat-input-0\"]",
     "password_id":"//*[@id=\"mat-input-1\"]",
     "ensure_login":"//*[contains(text(), 'Start New Booking')]",

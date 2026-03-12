@@ -1,19 +1,26 @@
 {
-  "url" : "https://lift-api.vfsglobal.com/appointment/slots",
-  "urlparams" : {
-    "countryCode":"bgd",
-    "missionCode":"dnk",
-    "centerCode":"DEDK",
-    "loginUser": "YOU_EMAIL",
-    "visaCategoryCode":"002",
-    "languageCode":"en-US",
-    "applicantsCount":"1",
-    "days":"90",
-    "slotType":"2"
-  },
-  "paths" : {
-    "auth" : "./auth.txt",
-    "output" : "./output.txt"
-  },
-  "sound" : "./alert.mp3"
+    "api_url": "https://lift-api.vfsglobal.com/appointment/CheckIsSlotAvailable",
+    "countryCode": "tur",
+    "missionCode": "nld",
+    "visaCategoryCode": "NSTOURISM",
+    "loginUser": "YOUR_EMAIL",
+    "payCode": "",
+    "roleName": "Individual",
+    "centers": [
+        {"name": "Ankara", "vacCode": "NANKA"},
+        {"name": "Antalya", "vacCode": "NANT"},
+        {"name": "Bursa", "vacCode": "NBUR"},
+        {"name": "Edirne", "vacCode": "NEDIE"},
+        {"name": "Gaziantep", "vacCode": "NGAZ"},
+        {"name": "Istanbul (Altunizade)", "vacCode": "NALT"},
+        {"name": "Istanbul (Istinye)", "vacCode": "NISTA"},
+        {"name": "Izmir", "vacCode": "ADB"}
+    ],
+    "paths": {
+        "auth": "./auth.txt",
+        "output": "./output.txt"
+    },
+    "sound": "./alert.mp3",
+    "delay_between_centers": 3,
+    "delay_between_rounds": 30
 }

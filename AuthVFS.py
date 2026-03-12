@@ -56,6 +56,11 @@ class AuthVFS:
             try:
                 driver.find_elements_by_xpath(args["ensure_login"])
                 jwt = driver.execute_script("return window.sessionStorage.JWT")
+                if not isinstance(jwt, str) or len(jwt) < 10:
+                    jwt = driver.execute_script("return window.localStorage.JWT")
+                if not isinstance(jwt, str) or len(jwt) < 10:
+                    print("Warning: could not retrieve a valid JWT from sessionStorage or localStorage.")
+                    continue
             except:
                 continue
 
