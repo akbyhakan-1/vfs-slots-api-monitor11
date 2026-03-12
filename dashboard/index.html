@@ -31,10 +31,48 @@
     font-family: 'Inter', sans-serif;
     font-size: 14px;
     min-height: 100vh;
-    padding: 24px 16px 48px;
+    padding: 0 0 48px;
   }
 
-  /* ── Header ── */
+  /* ── Top Nav ── */
+  #top-nav {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 0 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 8px;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+  #top-nav h1 {
+    font-size: 1.1rem;
+    font-weight: 700;
+    letter-spacing: -.3px;
+    padding: 14px 0;
+  }
+  #top-nav h1 span { color: var(--blue); }
+  .tab-nav { display: flex; gap: 4px; }
+  .tab-btn {
+    background: transparent;
+    border: none;
+    color: var(--muted);
+    cursor: pointer;
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 500;
+    padding: 8px 16px;
+    border-radius: 8px;
+    transition: background .15s, color .15s;
+  }
+  .tab-btn:hover { background: var(--surface2); color: var(--text); }
+  .tab-btn.active { background: var(--surface2); color: var(--blue); }
+
+  /* ── Monitor page ── */
+  #page-monitor { padding: 24px 16px 0; }
   header {
     max-width: 1100px;
     margin: 0 auto 32px;
@@ -44,12 +82,6 @@
     flex-wrap: wrap;
     gap: 12px;
   }
-  header h1 {
-    font-size: 1.4rem;
-    font-weight: 700;
-    letter-spacing: -.3px;
-  }
-  header h1 span { color: var(--blue); }
   #meta { font-size: 12px; color: var(--muted); line-height: 1.6; text-align: right; }
   #countdown {
     display: inline-flex;
@@ -68,9 +100,7 @@
     background: var(--green);
     animation: pulse 1.4s ease-in-out infinite;
   }
-  @keyframes pulse {
-    0%,100% { opacity: 1; } 50% { opacity: .3; }
-  }
+  @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: .3; } }
 
   /* ── Country Grid ── */
   #grid {
@@ -130,44 +160,19 @@
   }
   .center-row:last-child { border-bottom: none; }
   .center-row:hover { background: var(--surface2); }
-
-  .badge {
-    width: 10px; height: 10px;
-    border-radius: 50%;
-    flex-shrink: 0;
-  }
+  .badge { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
   .badge.slot_found { background: var(--green); box-shadow: 0 0 6px var(--green); }
   .badge.no_slot    { background: var(--red); }
   .badge.waitlist   { background: var(--yellow); }
   .badge.error      { background: var(--yellow); }
   .badge.unknown    { background: var(--gray); }
-
   .center-name {
-    flex: 1;
-    font-size: 13px;
-    font-weight: 500;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
+    flex: 1; font-size: 13px; font-weight: 500;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
   }
-  .center-detail {
-    font-size: 11px;
-    color: var(--muted);
-    text-align: right;
-    line-height: 1.4;
-    flex-shrink: 0;
-  }
-  .center-detail .date {
-    color: var(--green);
-    font-weight: 600;
-  }
-  .status-label {
-    font-size: 11px;
-    font-weight: 500;
-    padding: 2px 8px;
-    border-radius: 10px;
-    flex-shrink: 0;
-  }
+  .center-detail { font-size: 11px; color: var(--muted); text-align: right; line-height: 1.4; flex-shrink: 0; }
+  .center-detail .date { color: var(--green); font-weight: 600; }
+  .status-label { font-size: 11px; font-weight: 500; padding: 2px 8px; border-radius: 10px; flex-shrink: 0; }
   .status-label.slot_found { background: rgba(34,197,94,.18); color: var(--green); }
   .status-label.no_slot    { background: rgba(239,68,68,.15); color: var(--red); }
   .status-label.waitlist   { background: rgba(234,179,8,.15); color: var(--yellow); }
@@ -176,10 +181,8 @@
 
   /* ── Empty / Loading States ── */
   #loading, #empty {
-    max-width: 1100px;
-    margin: 60px auto;
-    text-align: center;
-    color: var(--muted);
+    max-width: 1100px; margin: 60px auto;
+    text-align: center; color: var(--muted);
   }
   #loading .spinner {
     width: 40px; height: 40px;
@@ -193,71 +196,762 @@
 
   /* ── Legend ── */
   #legend {
-    max-width: 1100px;
-    margin: 28px auto 0;
-    display: flex;
-    flex-wrap: wrap;
-    gap: 16px;
-    justify-content: center;
+    max-width: 1100px; margin: 28px auto 0;
+    display: flex; flex-wrap: wrap; gap: 16px; justify-content: center;
   }
-  .legend-item {
-    display: flex; align-items: center; gap: 6px;
-    font-size: 12px; color: var(--muted);
+  .legend-item { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--muted); }
+
+  /* ══════════════════════════════════════════════════════════
+     SETTINGS PAGE
+  ══════════════════════════════════════════════════════════ */
+  #page-settings { display: none; padding: 24px 16px 0; }
+
+  .settings-layout {
+    max-width: 1200px;
+    margin: 0 auto;
+    display: grid;
+    grid-template-columns: 280px 1fr;
+    gap: 24px;
+    align-items: start;
   }
 
+  /* ── Country sidebar ── */
+  .country-sidebar {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    overflow: hidden;
+    position: sticky;
+    top: 60px;
+  }
+  .sidebar-header {
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--border);
+    font-weight: 600;
+    font-size: 13px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .btn-add-country {
+    background: var(--blue);
+    border: none;
+    border-radius: 8px;
+    color: #fff;
+    cursor: pointer;
+    font-family: inherit;
+    font-size: 12px;
+    font-weight: 500;
+    padding: 6px 12px;
+    transition: opacity .15s;
+  }
+  .btn-add-country:hover { opacity: .85; }
+  #country-list-items { list-style: none; }
+  .country-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 20px;
+    border-bottom: 1px solid var(--border);
+    cursor: pointer;
+    transition: background .12s;
+  }
+  .country-item:last-child { border-bottom: none; }
+  .country-item:hover { background: var(--surface2); }
+  .country-item.active { background: rgba(59,130,246,.12); border-left: 3px solid var(--blue); }
+  .country-item-flag { font-size: 1.4rem; }
+  .country-item-info { flex: 1; min-width: 0; }
+  .country-item-name { font-weight: 500; font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .country-item-code { font-size: 11px; color: var(--muted); margin-top: 2px; }
+  .country-item-actions { display: flex; gap: 4px; }
+  .btn-icon {
+    background: transparent;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--muted);
+    cursor: pointer;
+    font-size: 13px;
+    padding: 4px 7px;
+    transition: background .12s, color .12s;
+  }
+  .btn-icon:hover { background: var(--surface2); color: var(--text); }
+  .btn-icon.danger:hover { border-color: var(--red); color: var(--red); }
+
+  #settings-empty-state {
+    text-align: center;
+    color: var(--muted);
+    padding: 40px 20px;
+    font-size: 13px;
+  }
+
+  /* ── Config form panel ── */
+  #config-panel {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+  }
+  .config-panel-header {
+    padding: 20px 24px 16px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+  .config-panel-title { font-size: 1.1rem; font-weight: 600; }
+  .config-panel-subtitle { font-size: 12px; color: var(--muted); margin-top: 3px; }
+  .btn-save {
+    background: var(--blue);
+    border: none;
+    border-radius: 8px;
+    color: #fff;
+    cursor: pointer;
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 600;
+    padding: 10px 20px;
+    transition: opacity .15s;
+  }
+  .btn-save:hover { opacity: .85; }
+  .btn-save:disabled { opacity: .5; cursor: not-allowed; }
+
+  #config-form-body { padding: 24px; }
+
+  /* ── Collapsible sections ── */
+  .form-section {
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    margin-bottom: 16px;
+    overflow: hidden;
+  }
+  .section-toggle {
+    background: var(--surface2);
+    border: none;
+    color: var(--text);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 600;
+    padding: 14px 18px;
+    text-align: left;
+    width: 100%;
+    transition: background .12s;
+  }
+  .section-toggle:hover { background: #2a2f45; }
+  .section-toggle .chevron { transition: transform .25s; display: inline-block; }
+  .section-toggle.open .chevron { transform: rotate(180deg); }
+  .section-body {
+    padding: 18px;
+    display: none;
+    border-top: 1px solid var(--border);
+  }
+  .section-body.open { display: block; }
+
+  /* ── Form fields ── */
+  .form-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: 14px;
+  }
+  .form-group { display: flex; flex-direction: column; gap: 6px; }
+  .form-group label { font-size: 12px; color: var(--muted); font-weight: 500; }
+  .form-input {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--text);
+    font-family: inherit;
+    font-size: 13px;
+    padding: 9px 12px;
+    transition: border-color .15s;
+    width: 100%;
+  }
+  .form-input:focus {
+    border-color: var(--blue);
+    outline: none;
+  }
+  .form-input::placeholder { color: var(--muted); opacity: .6; }
+  .password-wrap { position: relative; }
+  .password-wrap .form-input { padding-right: 40px; }
+  .pw-toggle {
+    position: absolute;
+    right: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: none;
+    border: none;
+    color: var(--muted);
+    cursor: pointer;
+    font-size: 15px;
+    padding: 2px;
+  }
+  .toggle-wrap { display: flex; align-items: center; gap: 10px; }
+  .toggle {
+    position: relative;
+    width: 40px; height: 22px;
+    flex-shrink: 0;
+  }
+  .toggle input { opacity: 0; width: 0; height: 0; }
+  .toggle-slider {
+    position: absolute;
+    inset: 0;
+    background: var(--border);
+    border-radius: 22px;
+    cursor: pointer;
+    transition: background .2s;
+  }
+  .toggle-slider::before {
+    content: '';
+    position: absolute;
+    width: 16px; height: 16px;
+    left: 3px; top: 3px;
+    background: #fff;
+    border-radius: 50%;
+    transition: transform .2s;
+  }
+  .toggle input:checked + .toggle-slider { background: var(--blue); }
+  .toggle input:checked + .toggle-slider::before { transform: translateX(18px); }
+  .toggle-label { font-size: 13px; color: var(--text); }
+
+  /* ── Centers editor ── */
+  .centers-list { display: flex; flex-direction: column; gap: 8px; margin-bottom: 12px; }
+  .center-edit-row {
+    display: grid;
+    grid-template-columns: 1fr 140px auto;
+    gap: 8px;
+    align-items: center;
+  }
+  .btn-del-center {
+    background: transparent;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--muted);
+    cursor: pointer;
+    font-size: 14px;
+    padding: 6px 9px;
+    transition: border-color .12s, color .12s;
+  }
+  .btn-del-center:hover { border-color: var(--red); color: var(--red); }
+  .btn-add-center {
+    background: transparent;
+    border: 1px dashed var(--border);
+    border-radius: 8px;
+    color: var(--muted);
+    cursor: pointer;
+    font-family: inherit;
+    font-size: 12px;
+    padding: 8px 14px;
+    text-align: center;
+    transition: border-color .15s, color .15s;
+    width: 100%;
+  }
+  .btn-add-center:hover { border-color: var(--blue); color: var(--blue); }
+
+  /* ── Telegram test btn ── */
+  .btn-tg-test {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--text);
+    cursor: pointer;
+    font-family: inherit;
+    font-size: 13px;
+    padding: 9px 16px;
+    transition: background .15s;
+    margin-top: 8px;
+  }
+  .btn-tg-test:hover { background: #2a2f45; }
+
+  /* ── Add country dialog ── */
+  .overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,.65);
+    z-index: 200;
+    align-items: center;
+    justify-content: center;
+  }
+  .overlay.open { display: flex; }
+  .dialog {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    padding: 28px 32px;
+    width: 100%;
+    max-width: 440px;
+    margin: 16px;
+  }
+  .dialog h2 { font-size: 1rem; font-weight: 700; margin-bottom: 20px; }
+  .dialog .form-group { margin-bottom: 14px; }
+  .dialog-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 24px; }
+  .btn-cancel {
+    background: transparent;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--muted);
+    cursor: pointer;
+    font-family: inherit;
+    font-size: 13px;
+    padding: 9px 18px;
+    transition: background .15s;
+  }
+  .btn-cancel:hover { background: var(--surface2); }
+
+  /* ── Toast ── */
+  #toast-container {
+    position: fixed;
+    bottom: 28px;
+    right: 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    z-index: 300;
+    pointer-events: none;
+  }
+  .toast {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    box-shadow: var(--shadow);
+    color: var(--text);
+    font-size: 13px;
+    font-weight: 500;
+    padding: 12px 18px;
+    animation: toastIn .25s ease, toastOut .3s ease 2.5s forwards;
+    pointer-events: auto;
+    max-width: 340px;
+  }
+  .toast.success { border-left: 4px solid var(--green); }
+  .toast.error   { border-left: 4px solid var(--red); }
+  @keyframes toastIn  { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+  @keyframes toastOut { from { opacity: 1; } to { opacity: 0; pointer-events: none; } }
+
   /* ── Responsive ── */
+  @media (max-width: 768px) {
+    .settings-layout { grid-template-columns: 1fr; }
+    .country-sidebar { position: static; }
+    .center-edit-row { grid-template-columns: 1fr auto auto; }
+  }
   @media (max-width: 540px) {
-    header { flex-direction: column; align-items: flex-start; }
-    #meta  { text-align: left; }
-    #grid  { grid-template-columns: 1fr; }
+    #page-monitor header { flex-direction: column; align-items: flex-start; }
+    #meta { text-align: left; }
+    #grid { grid-template-columns: 1fr; }
   }
 </style>
 </head>
 <body>
 
-<header>
-  <div>
-    <h1>VFS Slot Monitor <span>Dashboard</span></h1>
-    <div id="meta">
-      Son güncelleme: <span id="last-updated">—</span><br>
-      Bir sonraki yenileme: <span id="next-refresh">10</span>s
+<!-- ═══════ Top Nav ═══════ -->
+<nav id="top-nav">
+  <h1>VFS Slot Monitor <span>Dashboard</span></h1>
+  <div class="tab-nav">
+    <button class="tab-btn active" id="tab-monitor"  onclick="showTab('monitor')">📊 Monitor</button>
+    <button class="tab-btn"        id="tab-settings" onclick="showTab('settings')">⚙️ Ayarlar</button>
+  </div>
+</nav>
+
+<!-- ═══════ MONITOR PAGE ═══════ -->
+<div id="page-monitor">
+  <header>
+    <div>
+      <div id="meta">
+        Son güncelleme: <span id="last-updated">—</span><br>
+        Bir sonraki yenileme: <span id="next-refresh">10</span>s
+      </div>
+    </div>
+    <div id="countdown"><span class="dot"></span> Canlı İzleme</div>
+  </header>
+
+  <div id="loading">
+    <div class="spinner"></div>
+    <p>Durum yükleniyor…</p>
+  </div>
+
+  <div id="empty" style="display:none">
+    <p style="font-size:2rem;margin-bottom:8px">📭</p>
+    <p>Henüz durum verisi yok.</p>
+    <p style="margin-top:8px;font-size:12px">
+      <code>python3 PingVFS.py --country nld</code> veya <code>python3 run_all.py</code> çalıştırın.
+    </p>
+  </div>
+
+  <div id="grid" style="display:none"></div>
+
+  <div id="legend">
+    <div class="legend-item"><span class="badge slot_found"></span> Randevu Var</div>
+    <div class="legend-item"><span class="badge no_slot"></span> Randevu Yok</div>
+    <div class="legend-item"><span class="badge waitlist"></span> Bekleme Listesi / Hata</div>
+    <div class="legend-item"><span class="badge unknown"></span> Henüz Kontrol Edilmedi</div>
+  </div>
+</div>
+
+<!-- ═══════ SETTINGS PAGE ═══════ -->
+<div id="page-settings">
+  <div class="settings-layout">
+
+    <!-- Sidebar -->
+    <aside class="country-sidebar">
+      <div class="sidebar-header">
+        <span>🌍 Ülkeler</span>
+        <button class="btn-add-country" onclick="openAddDialog()">➕ Yeni Ülke</button>
+      </div>
+      <div id="settings-empty-state" style="display:none">
+        <p>Henüz ülke eklenmedi.</p>
+        <p style="margin-top:6px;font-size:12px">Yeni ülke eklemek için ➕ butonuna tıklayın.</p>
+      </div>
+      <ul id="country-list-items"></ul>
+    </aside>
+
+    <!-- Config panel -->
+    <div id="config-panel">
+      <div id="config-placeholder" style="padding:60px 24px;text-align:center;color:var(--muted)">
+        <p style="font-size:2rem;margin-bottom:8px">⚙️</p>
+        <p>Sol listeden bir ülke seçin veya yeni ülke ekleyin.</p>
+      </div>
+
+      <div id="config-form-wrapper" style="display:none">
+        <div class="config-panel-header">
+          <div>
+            <div class="config-panel-title" id="form-country-title">—</div>
+            <div class="config-panel-subtitle" id="form-country-subtitle">ülke kodu</div>
+          </div>
+          <button class="btn-save" onclick="saveAll()" id="btn-save">💾 Kaydet</button>
+        </div>
+
+        <div id="config-form-body">
+
+          <!-- 🔐 Giriş Ayarları -->
+          <div class="form-section">
+            <button class="section-toggle open" onclick="toggleSection(this)">
+              🔐 Giriş Ayarları <span class="chevron">▾</span>
+            </button>
+            <div class="section-body open">
+              <div class="form-grid">
+                <div class="form-group">
+                  <label>VFS Login URL</label>
+                  <input class="form-input" id="f-url" type="url" placeholder="https://visa.vfsglobal.com/..." />
+                </div>
+                <div class="form-group">
+                  <label>E-posta (VFS Hesabı)</label>
+                  <input class="form-input" id="f-user" type="email" placeholder="ornek@email.com" />
+                </div>
+                <div class="form-group">
+                  <label>Şifre</label>
+                  <div class="password-wrap">
+                    <input class="form-input" id="f-pass" type="password" placeholder="••••••••" autocomplete="new-password" />
+                    <button class="pw-toggle" type="button" onclick="togglePw('f-pass',this)">👁</button>
+                  </div>
+                </div>
+                <div class="form-group">
+                  <label>Auth Dosyası Yolu</label>
+                  <input class="form-input" id="f-auth_path" type="text" placeholder="./countries/nld/auth.txt" />
+                </div>
+                <div class="form-group">
+                  <label>Yenileme Gecikmesi (sn)</label>
+                  <input class="form-input" id="f-refr_delay" type="number" min="0" />
+                </div>
+                <div class="form-group">
+                  <label>Ortalama Gecikme (sn)</label>
+                  <input class="form-input" id="f-avrg_delay" type="number" min="0" />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 🔑 OTP Ayarları -->
+          <div class="form-section">
+            <button class="section-toggle" onclick="toggleSection(this)">
+              🔑 OTP Ayarları <span class="chevron">▾</span>
+            </button>
+            <div class="section-body">
+              <div class="form-grid">
+                <div class="form-group" style="grid-column:1/-1">
+                  <label>OTP Etkin</label>
+                  <div class="toggle-wrap">
+                    <label class="toggle">
+                      <input type="checkbox" id="f-otp-enabled" />
+                      <span class="toggle-slider"></span>
+                    </label>
+                    <span class="toggle-label">E-posta ile OTP doğrulama</span>
+                  </div>
+                </div>
+                <div class="form-group">
+                  <label>OTP Yöntemi</label>
+                  <input class="form-input" id="f-otp-method" type="text" placeholder="email" />
+                </div>
+                <div class="form-group">
+                  <label>IMAP Sunucusu</label>
+                  <input class="form-input" id="f-otp-imap_server" type="text" placeholder="imap.gmail.com" />
+                </div>
+                <div class="form-group">
+                  <label>IMAP Port</label>
+                  <input class="form-input" id="f-otp-imap_port" type="number" min="1" max="65535" />
+                </div>
+                <div class="form-group">
+                  <label>Gmail Adresi</label>
+                  <input class="form-input" id="f-otp-email_user" type="email" placeholder="ornek@gmail.com" />
+                </div>
+                <div class="form-group">
+                  <label>Gmail Uygulama Şifresi</label>
+                  <div class="password-wrap">
+                    <input class="form-input" id="f-otp-email_pass" type="password" placeholder="••••••••" autocomplete="new-password" />
+                    <button class="pw-toggle" type="button" onclick="togglePw('f-otp-email_pass',this)">👁</button>
+                  </div>
+                </div>
+                <div class="form-group">
+                  <label>Gönderici Filtresi</label>
+                  <input class="form-input" id="f-otp-sender_filter" type="text" />
+                </div>
+                <div class="form-group">
+                  <label>Konu Filtresi</label>
+                  <input class="form-input" id="f-otp-subject_filter" type="text" />
+                </div>
+                <div class="form-group">
+                  <label>OTP Zaman Aşımı (sn)</label>
+                  <input class="form-input" id="f-otp-otp_timeout" type="number" min="0" />
+                </div>
+                <div class="form-group">
+                  <label>Yoklama Aralığı (sn)</label>
+                  <input class="form-input" id="f-otp-poll_interval" type="number" min="1" />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 🌐 XPath Ayarları -->
+          <div class="form-section">
+            <button class="section-toggle" onclick="toggleSection(this)">
+              🌐 XPath Ayarları <span class="chevron">▾</span>
+            </button>
+            <div class="section-body">
+              <div class="form-grid">
+                <div class="form-group">
+                  <label>E-posta Alanı XPath</label>
+                  <input class="form-input" id="f-email_id" type="text" />
+                </div>
+                <div class="form-group">
+                  <label>Şifre Alanı XPath</label>
+                  <input class="form-input" id="f-password_id" type="text" />
+                </div>
+                <div class="form-group">
+                  <label>Gönder Butonu XPath</label>
+                  <input class="form-input" id="f-submit" type="text" />
+                </div>
+                <div class="form-group">
+                  <label>Giriş Onay XPath</label>
+                  <input class="form-input" id="f-ensure_login" type="text" />
+                </div>
+                <div class="form-group">
+                  <label>OTP Giriş XPath</label>
+                  <input class="form-input" id="f-otp_input" type="text" />
+                </div>
+                <div class="form-group">
+                  <label>OTP Gönder XPath</label>
+                  <input class="form-input" id="f-otp_submit" type="text" />
+                </div>
+                <div class="form-group">
+                  <label>Cloudflare Checkbox XPath</label>
+                  <input class="form-input" id="f-cloudflare_checkbox" type="text" />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 📡 API Ayarları -->
+          <div class="form-section">
+            <button class="section-toggle" onclick="toggleSection(this)">
+              📡 API Ayarları <span class="chevron">▾</span>
+            </button>
+            <div class="section-body">
+              <div class="form-grid">
+                <div class="form-group" style="grid-column:1/-1">
+                  <label>API URL</label>
+                  <input class="form-input" id="p-api_url" type="url" />
+                </div>
+                <div class="form-group">
+                  <label>Ülke Kodu (countryCode)</label>
+                  <input class="form-input" id="p-countryCode" type="text" placeholder="tur" />
+                </div>
+                <div class="form-group">
+                  <label>Misyon Kodu (missionCode)</label>
+                  <input class="form-input" id="p-missionCode" type="text" placeholder="nld" />
+                </div>
+                <div class="form-group">
+                  <label>Vize Kategorisi</label>
+                  <input class="form-input" id="p-visaCategoryCode" type="text" placeholder="NSTOURISM" />
+                </div>
+                <div class="form-group">
+                  <label>Giriş Kullanıcısı</label>
+                  <input class="form-input" id="p-loginUser" type="email" />
+                </div>
+                <div class="form-group">
+                  <label>Pay Kodu</label>
+                  <input class="form-input" id="p-payCode" type="text" />
+                </div>
+                <div class="form-group">
+                  <label>Rol Adı</label>
+                  <input class="form-input" id="p-roleName" type="text" placeholder="Individual" />
+                </div>
+                <div class="form-group">
+                  <label>Randevu URL</label>
+                  <input class="form-input" id="p-booking_url" type="url" />
+                </div>
+                <div class="form-group">
+                  <label>Giriş URL</label>
+                  <input class="form-input" id="p-login_url" type="url" />
+                </div>
+                <div class="form-group">
+                  <label>Ülke Adı</label>
+                  <input class="form-input" id="p-country_name" type="text" placeholder="Netherlands" />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 🏢 Merkezler -->
+          <div class="form-section">
+            <button class="section-toggle" onclick="toggleSection(this)">
+              🏢 Merkezler <span class="chevron">▾</span>
+            </button>
+            <div class="section-body">
+              <div class="centers-list" id="centers-list"></div>
+              <button class="btn-add-center" onclick="addCenterRow()">➕ Merkez Ekle</button>
+            </div>
+          </div>
+
+          <!-- ⏱️ Zamanlama -->
+          <div class="form-section">
+            <button class="section-toggle" onclick="toggleSection(this)">
+              ⏱️ Zamanlama <span class="chevron">▾</span>
+            </button>
+            <div class="section-body">
+              <div class="form-grid">
+                <div class="form-group">
+                  <label>Merkezler Arası Gecikme (sn)</label>
+                  <input class="form-input" id="p-delay_between_centers" type="number" min="0" />
+                </div>
+                <div class="form-group">
+                  <label>Tur Arası Gecikme (sn)</label>
+                  <input class="form-input" id="p-delay_between_rounds" type="number" min="0" />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 📲 Telegram -->
+          <div class="form-section">
+            <button class="section-toggle" onclick="toggleSection(this)">
+              📲 Telegram Ayarları <span class="chevron">▾</span>
+            </button>
+            <div class="section-body">
+              <div class="form-grid">
+                <div class="form-group" style="grid-column:1/-1">
+                  <label>Telegram Etkin</label>
+                  <div class="toggle-wrap">
+                    <label class="toggle">
+                      <input type="checkbox" id="p-tg-enabled" />
+                      <span class="toggle-slider"></span>
+                    </label>
+                    <span class="toggle-label">Telegram bildirimleri gönder</span>
+                  </div>
+                </div>
+                <div class="form-group">
+                  <label>Bot Token</label>
+                  <input class="form-input" id="p-tg-bot_token" type="text" placeholder="123456:ABC-..." />
+                </div>
+                <div class="form-group">
+                  <label>Chat ID</label>
+                  <input class="form-input" id="p-tg-chat_id" type="text" placeholder="-100..." />
+                </div>
+                <div class="form-group" style="grid-column:1/-1">
+                  <button class="btn-tg-test" onclick="testTelegram()">📨 Test Mesajı Gönder</button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 📁 Dosya Yolları -->
+          <div class="form-section">
+            <button class="section-toggle" onclick="toggleSection(this)">
+              📁 Dosya Yolları <span class="chevron">▾</span>
+            </button>
+            <div class="section-body">
+              <div class="form-grid">
+                <div class="form-group">
+                  <label>Auth Dosyası (paths.auth)</label>
+                  <input class="form-input" id="p-paths-auth" type="text" />
+                </div>
+                <div class="form-group">
+                  <label>Çıktı Dosyası (paths.output)</label>
+                  <input class="form-input" id="p-paths-output" type="text" />
+                </div>
+                <div class="form-group">
+                  <label>Ses Dosyası</label>
+                  <input class="form-input" id="p-sound" type="text" placeholder="./alert.mp3" />
+                </div>
+              </div>
+            </div>
+          </div>
+
+        </div><!-- /config-form-body -->
+      </div><!-- /config-form-wrapper -->
+    </div><!-- /config-panel -->
+
+  </div><!-- /settings-layout -->
+</div><!-- /page-settings -->
+
+<!-- ═══════ Add Country Dialog ═══════ -->
+<div class="overlay" id="add-dialog">
+  <div class="dialog">
+    <h2>➕ Yeni Ülke Ekle</h2>
+    <div class="form-group">
+      <label>Ülke Kodu (küçük harf, örn: deu)</label>
+      <input class="form-input" id="new-code" type="text" placeholder="deu" maxlength="10" />
+    </div>
+    <div class="form-group">
+      <label>Ülke Adı (örn: Germany)</label>
+      <input class="form-input" id="new-name" type="text" placeholder="Germany" />
+    </div>
+    <div class="dialog-actions">
+      <button class="btn-cancel" onclick="closeAddDialog()">İptal</button>
+      <button class="btn-save"   onclick="createCountry()">Oluştur</button>
     </div>
   </div>
-  <div id="countdown"><span class="dot"></span> Canlı İzleme</div>
-</header>
-
-<div id="loading">
-  <div class="spinner"></div>
-  <p>Durum yükleniyor…</p>
 </div>
 
-<div id="empty" style="display:none">
-  <p style="font-size:2rem;margin-bottom:8px">📭</p>
-  <p>Henüz durum verisi yok.</p>
-  <p style="margin-top:8px;font-size:12px">
-    <code>python3 PingVFS.py --country nld</code> veya <code>python3 run_all.py</code> çalıştırın.
-  </p>
-</div>
-
-<div id="grid" style="display:none"></div>
-
-<div id="legend">
-  <div class="legend-item"><span class="badge slot_found"></span> Randevu Var</div>
-  <div class="legend-item"><span class="badge no_slot"></span> Randevu Yok</div>
-  <div class="legend-item"><span class="badge waitlist"></span> Bekleme Listesi / Hata</div>
-  <div class="legend-item"><span class="badge unknown"></span> Henüz Kontrol Edilmedi</div>
-</div>
+<!-- Toast container -->
+<div id="toast-container"></div>
 
 <script>
-const STATUS_URL = '/api/status';
-const REFRESH_INTERVAL = 10; // seconds
+/* ═══════════════════════════════════════════════════════════
+   TAB NAVIGATION
+═══════════════════════════════════════════════════════════ */
+function showTab(name) {
+  document.getElementById('page-monitor').style.display   = name === 'monitor'  ? 'block' : 'none';
+  document.getElementById('page-settings').style.display  = name === 'settings' ? 'block' : 'none';
+  document.getElementById('tab-monitor').classList.toggle('active',  name === 'monitor');
+  document.getElementById('tab-settings').classList.toggle('active', name === 'settings');
+  if (name === 'settings') loadCountries();
+}
+
+/* ═══════════════════════════════════════════════════════════
+   MONITOR LOGIC (unchanged from original)
+═══════════════════════════════════════════════════════════ */
+const STATUS_URL       = '/api/status';
+const REFRESH_INTERVAL = 10;
 
 const FLAG_MAP = {
-  nld: '🇳🇱', hrv: '🇭🇷', deu: '🇩🇪', fra: '🇫🇷',
-  ita: '🇮🇹', esp: '🇪🇸', aut: '🇦🇹', bel: '🇧🇪',
-  che: '🇨🇭', cze: '🇨🇿', dnk: '🇩🇰', fin: '🇫🇮',
-  grc: '🇬🇷', hun: '🇭🇺', irl: '🇮🇪', nor: '🇳🇴',
-  pol: '🇵🇱', prt: '🇵🇹', swe: '🇸🇪',
+  nld:'🇳🇱', hrv:'🇭🇷', deu:'🇩🇪', fra:'🇫🇷',
+  ita:'🇮🇹', esp:'🇪🇸', aut:'🇦🇹', bel:'🇧🇪',
+  che:'🇨🇭', cze:'🇨🇿', dnk:'🇩🇰', fin:'🇫🇮',
+  grc:'🇬🇷', hun:'🇭🇺', irl:'🇮🇪', nor:'🇳🇴',
+  pol:'🇵🇱', prt:'🇵🇹', swe:'🇸🇪',
 };
 const STATUS_LABEL = {
   slot_found: 'RANDEVU VAR 🎉',
@@ -273,7 +967,7 @@ function fmtTime(iso) {
   if (!iso) return '—';
   try {
     const d = new Date(iso.replace('T', ' '));
-    return d.toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+    return d.toLocaleTimeString('tr-TR', { hour:'2-digit', minute:'2-digit', second:'2-digit' });
   } catch { return iso; }
 }
 
@@ -288,24 +982,18 @@ function normaliseStatus(s) {
 }
 
 function renderCenters(centers) {
-  if (!centers || centers.length === 0) {
-    return '<div style="padding:16px 20px;color:var(--muted);font-size:13px">Merkez verisi bekleniyor…</div>';
-  }
+  if (!centers || centers.length === 0)
+    return '<div style="padding:16px 20px;color:var(--muted);font-size:13px">Merkez verisi bekleniyor\u2026</div>';
   return centers.map(c => {
     const st = normaliseStatus(c.status);
-    const dateHtml = c.earliest_date
-      ? `<span class="date">${c.earliest_date}</span>`
-      : '';
-    const timeHtml = c.last_check
-      ? `<br><span style="font-size:10px">${fmtTime(c.last_check)}</span>`
-      : '';
-    return `
-      <div class="center-row">
-        <span class="badge ${st}"></span>
-        <span class="center-name">${c.name}</span>
-        <span class="center-detail">${dateHtml}${timeHtml}</span>
-        <span class="status-label ${st}">${STATUS_LABEL[st] || st}</span>
-      </div>`;
+    const dateHtml = c.earliest_date ? '<span class="date">' + c.earliest_date + '</span>' : '';
+    const timeHtml = c.last_check    ? '<br><span style="font-size:10px">' + fmtTime(c.last_check) + '</span>' : '';
+    return '<div class="center-row">' +
+      '<span class="badge ' + st + '"></span>' +
+      '<span class="center-name">' + c.name + '</span>' +
+      '<span class="center-detail">' + dateHtml + timeHtml + '</span>' +
+      '<span class="status-label ' + st + '">' + (STATUS_LABEL[st] || st) + '</span>' +
+      '</div>';
   }).join('');
 }
 
@@ -313,29 +1001,25 @@ function renderGrid(data) {
   const countries = data.countries || {};
   const codes = Object.keys(countries);
   if (codes.length === 0) return null;
-
   return codes.map(code => {
     const c = countries[code];
-    const flag = FLAG_MAP[code] || '🌍';
-    const loginLink  = c.login_url  ? `<a href="${c.login_url}" target="_blank" rel="noopener">Giriş</a>` : '';
-    const bookLink   = c.booking_url ? `<a href="${c.booking_url}" target="_blank" rel="noopener">Randevu Al</a>` : '';
-    const lastCheck  = c.last_check  ? `Son kontrol: ${fmtTime(c.last_check)}` : '';
-    const slotCount  = (c.centers || []).filter(x => normaliseStatus(x.status) === 'slot_found').length;
-    const slotBadge  = slotCount > 0
-      ? `<span style="color:var(--green);font-weight:600">${slotCount} randevu var!</span>`
-      : '';
-    return `
-      <div class="card">
-        <div class="card-header">
-          <span class="card-flag">${flag}</span>
-          <div class="card-info">
-            <div class="card-title">${c.name || code.toUpperCase()}</div>
-            <div class="card-sub">${lastCheck} ${slotBadge}</div>
-            <div class="card-links">${loginLink}${bookLink}</div>
-          </div>
-        </div>
-        <div class="centers">${renderCenters(c.centers)}</div>
-      </div>`;
+    const flag       = FLAG_MAP[code] || '🌍';
+    const loginLink  = c.login_url   ? '<a href="' + c.login_url   + '" target="_blank" rel="noopener">Giriş</a>'     : '';
+    const bookLink   = c.booking_url ? '<a href="' + c.booking_url + '" target="_blank" rel="noopener">Randevu Al</a>' : '';
+    const lastCheck  = c.last_check  ? 'Son kontrol: ' + fmtTime(c.last_check) : '';
+    const slotCount  = (c.centers||[]).filter(x => normaliseStatus(x.status) === 'slot_found').length;
+    const slotBadge  = slotCount > 0 ? '<span style="color:var(--green);font-weight:600">' + slotCount + ' randevu var!</span>' : '';
+    return '<div class="card">' +
+      '<div class="card-header">' +
+        '<span class="card-flag">' + flag + '</span>' +
+        '<div class="card-info">' +
+          '<div class="card-title">' + (c.name || code.toUpperCase()) + '</div>' +
+          '<div class="card-sub">' + lastCheck + ' ' + slotBadge + '</div>' +
+          '<div class="card-links">' + loginLink + bookLink + '</div>' +
+        '</div>' +
+      '</div>' +
+      '<div class="centers">' + renderCenters(c.centers) + '</div>' +
+      '</div>';
   }).join('');
 }
 
@@ -344,34 +1028,27 @@ async function fetchStatus() {
     const res = await fetch(STATUS_URL + '?t=' + Date.now());
     if (!res.ok) throw new Error(res.status);
     return await res.json();
-  } catch (e) {
-    console.warn('Status fetch failed:', e);
-    return null;
-  }
+  } catch(e) { console.warn('Status fetch failed:', e); return null; }
 }
 
 async function refresh() {
-  const data = await fetchStatus();
+  const data      = await fetchStatus();
   const loadingEl = document.getElementById('loading');
   const emptyEl   = document.getElementById('empty');
   const gridEl    = document.getElementById('grid');
   const lastEl    = document.getElementById('last-updated');
-
   loadingEl.style.display = 'none';
-
   if (!data || !data.countries || Object.keys(data.countries).length === 0) {
     emptyEl.style.display = 'block';
     gridEl.style.display  = 'none';
     return;
   }
-
   emptyEl.style.display = 'none';
   gridEl.style.display  = 'grid';
   gridEl.innerHTML = renderGrid(data);
   lastEl.textContent = fmtTime(data.last_updated);
 }
 
-// Countdown ticker
 function startCountdown() {
   countdown = REFRESH_INTERVAL;
   const el = document.getElementById('next-refresh');
@@ -387,6 +1064,397 @@ function startCountdown() {
 }
 
 refresh().then(startCountdown);
+
+/* ═══════════════════════════════════════════════════════════
+   SETTINGS LOGIC
+═══════════════════════════════════════════════════════════ */
+
+let currentCountryCode = null;
+
+function toggleSection(btn) {
+  btn.classList.toggle('open');
+  btn.nextElementSibling.classList.toggle('open');
+}
+
+function togglePw(id, btn) {
+  const inp = document.getElementById(id);
+  if (inp.type === 'password') { inp.type = 'text';     btn.textContent = '🙈'; }
+  else                         { inp.type = 'password'; btn.textContent = '👁';  }
+}
+
+function showToast(msg, type) {
+  type = type || 'success';
+  const c = document.getElementById('toast-container');
+  const t = document.createElement('div');
+  t.className = 'toast ' + type;
+  t.textContent = msg;
+  c.appendChild(t);
+  setTimeout(function() { t.remove(); }, 3000);
+}
+
+async function loadCountries() {
+  try {
+    const res  = await fetch('/api/countries?t=' + Date.now());
+    const data = await res.json();
+    renderCountryList(data.countries || []);
+  } catch(e) {
+    showToast('Ülkeler yüklenemedi: ' + e.message, 'error');
+  }
+}
+
+function renderCountryList(countries) {
+  const list  = document.getElementById('country-list-items');
+  const empty = document.getElementById('settings-empty-state');
+  list.innerHTML = '';
+  if (countries.length === 0) {
+    empty.style.display = 'block';
+    return;
+  }
+  empty.style.display = 'none';
+  countries.forEach(function(c) {
+    const li = document.createElement('li');
+    li.className = 'country-item' + (c.code === currentCountryCode ? ' active' : '');
+    li.dataset.code = c.code;
+    li.innerHTML =
+      '<span class="country-item-flag">' + (FLAG_MAP[c.code] || '🌍') + '</span>' +
+      '<div class="country-item-info">' +
+        '<div class="country-item-name">' + escHtml(c.name) + '</div>' +
+        '<div class="country-item-code">' + escHtml(c.code) + '</div>' +
+      '</div>' +
+      '<div class="country-item-actions">' +
+        '<button class="btn-icon" title="Düzenle" onclick="editCountry(\'' + escHtml(c.code) + '\')">✏️</button>' +
+        '<button class="btn-icon danger" title="Sil" onclick="confirmDelete(\'' + escHtml(c.code) + '\',\'' + escHtml(c.name) + '\')">🗑️</button>' +
+      '</div>';
+    li.addEventListener('click', function(e) {
+      if (!e.target.closest('.btn-icon')) editCountry(c.code);
+    });
+    list.appendChild(li);
+  });
+}
+
+async function editCountry(code) {
+  currentCountryCode = code;
+  document.querySelectorAll('.country-item').forEach(function(li) {
+    li.classList.toggle('active', li.dataset.code === code);
+  });
+  document.getElementById('config-placeholder').style.display   = 'none';
+  document.getElementById('config-form-wrapper').style.display  = 'block';
+
+  var countryName = code.toUpperCase();
+  document.querySelectorAll('.country-item').forEach(function(li) {
+    if (li.dataset.code === code) {
+      var nameEl = li.querySelector('.country-item-name');
+      if (nameEl) countryName = nameEl.textContent;
+    }
+  });
+  document.getElementById('form-country-title').textContent    = countryName;
+  document.getElementById('form-country-subtitle').textContent = code;
+
+  try {
+    var authRes = await fetch('/api/config/' + code + '/auth');
+    var pingRes = await fetch('/api/config/' + code + '/ping');
+    var auth = authRes.ok ? await authRes.json() : {};
+    var ping = pingRes.ok ? await pingRes.json() : {};
+    populateForm(auth, ping);
+  } catch(e) {
+    showToast('Config yüklenemedi: ' + e.message, 'error');
+  }
+}
+
+function populateForm(auth, ping) {
+  setVal('f-url',           auth.url          || '');
+  setVal('f-user',          auth.user         || '');
+  setVal('f-pass',          auth.pass         || '');
+  setVal('f-auth_path',     auth.auth_path    || '');
+  setVal('f-refr_delay',    auth.refr_delay   != null ? auth.refr_delay   : 600);
+  setVal('f-avrg_delay',    auth.avrg_delay   != null ? auth.avrg_delay   : 10);
+  setVal('f-email_id',      auth.email_id     || '');
+  setVal('f-password_id',   auth.password_id  || '');
+  setVal('f-submit',        auth.submit       || '');
+  setVal('f-ensure_login',  auth.ensure_login || '');
+  setVal('f-otp_input',     auth.otp_input          || '');
+  setVal('f-otp_submit',    auth.otp_submit         || '');
+  setVal('f-cloudflare_checkbox', auth.cloudflare_checkbox || '//input[@type=\'checkbox\']');
+
+  var otp = auth.otp || {};
+  document.getElementById('f-otp-enabled').checked = !!otp.enabled;
+  setVal('f-otp-method',         otp.method         || 'email');
+  setVal('f-otp-imap_server',    otp.imap_server    || 'imap.gmail.com');
+  setVal('f-otp-imap_port',      otp.imap_port      != null ? otp.imap_port      : 993);
+  setVal('f-otp-email_user',     otp.email_user     || '');
+  setVal('f-otp-email_pass',     otp.email_pass     || '');
+  setVal('f-otp-sender_filter',  otp.sender_filter  || 'donotreply@vfshelpline.com');
+  setVal('f-otp-subject_filter', otp.subject_filter || 'One Time Password');
+  setVal('f-otp-otp_timeout',    otp.otp_timeout    != null ? otp.otp_timeout    : 300);
+  setVal('f-otp-poll_interval',  otp.poll_interval  != null ? otp.poll_interval  : 5);
+
+  setVal('p-api_url',          ping.api_url              || 'https://lift-api.vfsglobal.com/appointment/CheckIsSlotAvailable');
+  setVal('p-countryCode',      ping.countryCode          || 'tur');
+  setVal('p-missionCode',      ping.missionCode          || '');
+  setVal('p-visaCategoryCode', ping.visaCategoryCode     || '');
+  setVal('p-loginUser',        ping.loginUser            || '');
+  setVal('p-payCode',          ping.payCode              || '');
+  setVal('p-roleName',         ping.roleName             || 'Individual');
+  setVal('p-booking_url',      ping.booking_url          || '');
+  setVal('p-login_url',        ping.login_url            || '');
+  setVal('p-country_name',     ping.country_name         || '');
+  setVal('p-delay_between_centers', ping.delay_between_centers != null ? ping.delay_between_centers : 3);
+  setVal('p-delay_between_rounds',  ping.delay_between_rounds  != null ? ping.delay_between_rounds  : 30);
+  setVal('p-sound',            ping.sound                || './alert.mp3');
+
+  var paths = ping.paths || {};
+  setVal('p-paths-auth',   paths.auth   || '');
+  setVal('p-paths-output', paths.output || '');
+
+  var tg = ping.telegram || {};
+  document.getElementById('p-tg-enabled').checked = !!tg.enabled;
+  setVal('p-tg-bot_token', tg.bot_token || '');
+  setVal('p-tg-chat_id',   tg.chat_id   || '');
+
+  renderCentersList(ping.centers || []);
+}
+
+function setVal(id, val) {
+  var el = document.getElementById(id);
+  if (el) el.value = val;
+}
+
+function renderCentersList(centers) {
+  var list = document.getElementById('centers-list');
+  list.innerHTML = '';
+  centers.forEach(function(c) { addCenterRow(c.name, c.vacCode); });
+}
+
+function addCenterRow(name, vacCode) {
+  name    = name    || '';
+  vacCode = vacCode || '';
+  var list = document.getElementById('centers-list');
+  var row  = document.createElement('div');
+  row.className = 'center-edit-row';
+  row.innerHTML =
+    '<input class="form-input center-name-inp" type="text"  placeholder="Merkez Adı" value="' + escHtml(name)    + '" />' +
+    '<input class="form-input center-vac-inp"  type="text"  placeholder="vacCode"    value="' + escHtml(vacCode) + '" />' +
+    '<button class="btn-del-center" title="Sil" onclick="this.closest(\'.center-edit-row\').remove()">🗑️</button>';
+  list.appendChild(row);
+}
+
+function getCenters() {
+  return Array.from(document.querySelectorAll('#centers-list .center-edit-row')).map(function(row) {
+    return {
+      name:    row.querySelector('.center-name-inp').value.trim(),
+      vacCode: row.querySelector('.center-vac-inp').value.trim(),
+    };
+  }).filter(function(c) { return c.name || c.vacCode; });
+}
+
+async function saveAll() {
+  if (!currentCountryCode) return;
+  var btn = document.getElementById('btn-save');
+  btn.disabled = true;
+  btn.textContent = '⏳ Kaydediliyor…';
+
+  var auth = buildAuth();
+  var ping = buildPing();
+
+  try {
+    var r1 = await fetch('/api/config/' + currentCountryCode + '/auth', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify(auth),
+    });
+    var r2 = await fetch('/api/config/' + currentCountryCode + '/ping', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify(ping),
+    });
+    var d1 = await r1.json();
+    var d2 = await r2.json();
+    if (!r1.ok) throw new Error(d1.error || 'auth kayıt hatası');
+    if (!r2.ok) throw new Error(d2.error || 'ping kayıt hatası');
+    showToast('✅ Ayarlar başarıyla kaydedildi!', 'success');
+    loadCountries();
+  } catch(e) {
+    showToast('❌ Kayıt hatası: ' + e.message, 'error');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '💾 Kaydet';
+  }
+}
+
+function buildAuth() {
+  return {
+    country_name:        document.getElementById('p-country_name').value.trim() || currentCountryCode.toUpperCase(),
+    country_code:        currentCountryCode,
+    url:                 document.getElementById('f-url').value.trim(),
+    email_id:            document.getElementById('f-email_id').value.trim(),
+    password_id:         document.getElementById('f-password_id').value.trim(),
+    ensure_login:        document.getElementById('f-ensure_login').value.trim(),
+    submit:              document.getElementById('f-submit').value.trim(),
+    otp_input:           document.getElementById('f-otp_input').value.trim(),
+    otp_submit:          document.getElementById('f-otp_submit').value.trim(),
+    cloudflare_checkbox: document.getElementById('f-cloudflare_checkbox').value.trim(),
+    user:                document.getElementById('f-user').value.trim(),
+    pass:                document.getElementById('f-pass').value,
+    auth_path:           document.getElementById('f-auth_path').value.trim(),
+    refr_delay:          parseInt(document.getElementById('f-refr_delay').value)  || 600,
+    avrg_delay:          parseInt(document.getElementById('f-avrg_delay').value)  || 10,
+    otp: {
+      enabled:        document.getElementById('f-otp-enabled').checked,
+      method:         document.getElementById('f-otp-method').value.trim() || 'email',
+      imap_server:    document.getElementById('f-otp-imap_server').value.trim(),
+      imap_port:      parseInt(document.getElementById('f-otp-imap_port').value)     || 993,
+      email_user:     document.getElementById('f-otp-email_user').value.trim(),
+      email_pass:     document.getElementById('f-otp-email_pass').value,
+      sender_filter:  document.getElementById('f-otp-sender_filter').value.trim(),
+      subject_filter: document.getElementById('f-otp-subject_filter').value.trim(),
+      otp_timeout:    parseInt(document.getElementById('f-otp-otp_timeout').value)   || 300,
+      poll_interval:  parseInt(document.getElementById('f-otp-poll_interval').value) || 5,
+    },
+  };
+}
+
+function buildPing() {
+  return {
+    country_name:          document.getElementById('p-country_name').value.trim(),
+    country_code:          currentCountryCode,
+    api_url:               document.getElementById('p-api_url').value.trim(),
+    countryCode:           document.getElementById('p-countryCode').value.trim(),
+    missionCode:           document.getElementById('p-missionCode').value.trim(),
+    visaCategoryCode:      document.getElementById('p-visaCategoryCode').value.trim(),
+    loginUser:             document.getElementById('p-loginUser').value.trim(),
+    payCode:               document.getElementById('p-payCode').value.trim(),
+    roleName:              document.getElementById('p-roleName').value.trim(),
+    booking_url:           document.getElementById('p-booking_url').value.trim(),
+    login_url:             document.getElementById('p-login_url').value.trim(),
+    centers:               getCenters(),
+    paths: {
+      auth:   document.getElementById('p-paths-auth').value.trim(),
+      output: document.getElementById('p-paths-output').value.trim(),
+    },
+    sound:                 document.getElementById('p-sound').value.trim(),
+    delay_between_centers: parseInt(document.getElementById('p-delay_between_centers').value) || 3,
+    delay_between_rounds:  parseInt(document.getElementById('p-delay_between_rounds').value)  || 30,
+    telegram: {
+      enabled:   document.getElementById('p-tg-enabled').checked,
+      bot_token: document.getElementById('p-tg-bot_token').value.trim(),
+      chat_id:   document.getElementById('p-tg-chat_id').value.trim(),
+    },
+  };
+}
+
+async function testTelegram() {
+  if (!currentCountryCode) return;
+  try {
+    var res  = await fetch('/api/config/' + currentCountryCode + '/test-telegram', { method: 'POST' });
+    var data = await res.json();
+    if (res.ok) showToast('✅ ' + (data.message || 'Test mesajı gönderildi!'), 'success');
+    else        showToast('❌ ' + (data.error   || 'Telegram hatası'), 'error');
+  } catch(e) {
+    showToast('❌ Telegram hatası: ' + e.message, 'error');
+  }
+}
+
+function confirmDelete(code, name) {
+  if (!confirm('"' + name + '" (' + code + ') ülkesini silmek istediğinize emin misiniz?\n\nBu işlem geri alınamaz!')) return;
+  deleteCountry(code);
+}
+
+async function deleteCountry(code) {
+  try {
+    var res  = await fetch('/api/config/' + code, { method: 'DELETE' });
+    var data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Silme hatası');
+    showToast('✅ "' + code + '" ülkesi silindi.', 'success');
+    if (currentCountryCode === code) {
+      currentCountryCode = null;
+      document.getElementById('config-placeholder').style.display  = 'block';
+      document.getElementById('config-form-wrapper').style.display = 'none';
+    }
+    loadCountries();
+  } catch(e) {
+    showToast('❌ ' + e.message, 'error');
+  }
+}
+
+function openAddDialog() {
+  document.getElementById('new-code').value = '';
+  document.getElementById('new-name').value = '';
+  document.getElementById('add-dialog').classList.add('open');
+  setTimeout(function() { document.getElementById('new-code').focus(); }, 50);
+}
+function closeAddDialog() {
+  document.getElementById('add-dialog').classList.remove('open');
+}
+
+document.getElementById('add-dialog').addEventListener('click', function(e) {
+  if (e.target === e.currentTarget) closeAddDialog();
+});
+
+async function createCountry() {
+  var code = document.getElementById('new-code').value.trim().toLowerCase();
+  var name = document.getElementById('new-name').value.trim();
+  if (!code) { showToast('Ülke kodu zorunludur', 'error'); return; }
+  if (!name) { showToast('Ülke adı zorunludur', 'error'); return; }
+
+  var auth = {
+    country_name: name, country_code: code,
+    url: 'https://visa.vfsglobal.com/tur/tr/' + code + '/login',
+    email_id: "//*[@id='email']", password_id: "//*[@id='password']",
+    ensure_login: "//*[contains(text(), 'Start New Booking')]",
+    submit: "//button[contains(.,'Oturum')]",
+    otp_input: "//input[contains(@id, 'mat-input')]",
+    otp_submit: "//button[contains(.,'Oturum')]",
+    cloudflare_checkbox: "//input[@type='checkbox']",
+    user: 'YOUR_VFS_EMAIL', pass: 'YOUR_VFS_PASSWORD',
+    auth_path: './countries/' + code + '/auth.txt',
+    refr_delay: 600, avrg_delay: 10,
+    otp: {
+      enabled: true, method: 'email',
+      imap_server: 'imap.gmail.com', imap_port: 993,
+      email_user: 'YOUR_GMAIL_ADDRESS', email_pass: 'YOUR_GMAIL_APP_PASSWORD',
+      sender_filter: 'donotreply@vfshelpline.com',
+      subject_filter: 'One Time Password', otp_timeout: 300, poll_interval: 5,
+    },
+  };
+  var ping = {
+    country_name: name, country_code: code,
+    api_url: 'https://lift-api.vfsglobal.com/appointment/CheckIsSlotAvailable',
+    countryCode: 'tur', missionCode: code,
+    visaCategoryCode: 'NSTOURISM', loginUser: 'YOUR_EMAIL',
+    payCode: '', roleName: 'Individual',
+    booking_url: 'https://visa.vfsglobal.com/tur/tr/' + code + '/book-appointment',
+    login_url:   'https://visa.vfsglobal.com/tur/tr/' + code + '/login',
+    centers: [],
+    paths: { auth: './countries/' + code + '/auth.txt', output: './countries/' + code + '/output.txt' },
+    sound: './alert.mp3', delay_between_centers: 3, delay_between_rounds: 30,
+    telegram: { enabled: true, bot_token: 'YOUR_TELEGRAM_BOT_TOKEN', chat_id: 'YOUR_TELEGRAM_CHAT_ID' },
+  };
+
+  try {
+    var r1 = await fetch('/api/config/' + code + '/auth', {
+      method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(auth),
+    });
+    var r2 = await fetch('/api/config/' + code + '/ping', {
+      method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(ping),
+    });
+    if (!r1.ok || !r2.ok) throw new Error('Oluşturma başarısız');
+    closeAddDialog();
+    showToast('✅ "' + name + '" ülkesi oluşturuldu!', 'success');
+    await loadCountries();
+    editCountry(code);
+  } catch(e) {
+    showToast('❌ ' + e.message, 'error');
+  }
+}
+
+function escHtml(s) {
+  return String(s)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
 </script>
 </body>
 </html>
