@@ -3,6 +3,7 @@ import os
 import time
 import random
 import json
+import argparse
 from datetime import datetime, timezone, timedelta
 import undetected_chromedriver as uc
 from selenium.webdriver.common.by import By
@@ -294,4 +295,17 @@ def main(params):
     auth.intialize()
 
 if __name__ == "__main__":
-    main("./auth_creds.json")
+    parser = argparse.ArgumentParser(description="VFS JWT authenticator")
+    parser.add_argument(
+        "--country",
+        help="Country code to authenticate (e.g. nld, hrv). Reads from countries/<code>/auth_creds.json",
+        default=None,
+    )
+    args = parser.parse_args()
+
+    if args.country:
+        creds_path = f"./countries/{args.country}/auth_creds.json"
+    else:
+        creds_path = "./auth_creds.json"
+
+    main(creds_path)
