@@ -1,10 +1,13 @@
 #!/usr/bin/env python
 import os
+import sys
 import time
 import random
 import json
 import argparse
 from datetime import datetime, timezone, timedelta
+
+sys.stdout.reconfigure(errors='replace')
 import undetected_chromedriver as uc
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
@@ -258,12 +261,15 @@ class AuthVFS:
     
     def intialize(self):
         self.create_driver()
-        print("""
-██    ██ ███████ ███████          ██ ██     ██ ████████
-██    ██ ██      ██               ██ ██     ██    ██
-██    ██ █████   ███████          ██ ██  █  ██    ██
- ██  ██  ██           ██     ██   ██ ██ ███ ██    ██
-  ████   ██      ███████      █████   ███ ███     ██ ██ ██ ██""")
+        print(r"""
+ =============================================
+  __   _____ ___       _ _  _ _____
+  \ \ / / __/ __|     | | || |_   _|
+   \ V /| _|\___ \ _  | | || | | |
+    \_/ |_| |____/\___|_|\__/  |_|
+  VFS JWT Authenticator
+ =============================================
+""")
 
         print("\n")
         print("Started at:", end =" ")
