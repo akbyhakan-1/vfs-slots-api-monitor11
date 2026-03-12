@@ -5,7 +5,7 @@ import json
 from datetime import datetime, timezone
 import undetected_chromedriver as uc
 from selenium.webdriver.common.by import By
-from selenium.common.exceptions import NoSuchElementException
+from selenium.common.exceptions import NoSuchElementException, InvalidSessionIdException
 from OTPReader import OTPReader
 
 
@@ -19,8 +19,10 @@ class AuthVFS:
     def create_driver(self):
         self.safe_quit()
         options = uc.ChromeOptions()
-        # undetected-chromedriver automatically prevents bot detection
-        # Do not use --incognito, it triggers Cloudflare
+        # Use existing Chrome user profile to pass Cloudflare verification
+        # The real browser cookies and history help Cloudflare recognize as a real user
+        options.add_argument("--user-data-dir=C:/Users/akbyh/AppData/Local/Google/Chrome/User Data")
+        options.add_argument("--profile-directory=Default")
         options.add_argument("--no-sandbox")
         options.add_argument("--disable-dev-shm-usage")
         self.driver = uc.Chrome(
@@ -36,11 +38,16 @@ class AuthVFS:
         except Exception:
             pass
 
-    def wait_for_cloudflare(self, driver, timeout=60):
-        """Wait for Cloudflare verification page — usually passes automatically with undetected-chromedriver."""
+    def wait_for_cloudflare(self, driver, timeout=120):
+        """Wait for Cloudflare verification page — with user profile, usually passes automatically."""
         start_time = time.time()
         while time.time() - start_time < timeout:
-            current_title = driver.title.lower()
+            try:
+                current_title = driver.title.lower()
+            except (InvalidSessionIdException, Exception):
+                print("Warning: Could not read page title, waiting...", flush=True)
+                time.sleep(3)
+                continue
 
             # Check if Cloudflare page has been passed
             if "bir dakika" not in current_title and "just a moment" not in current_title:
@@ -216,6 +223,10 @@ class AuthVFS:
         return True
     
     def intialize(self):
+        print("IMPORTANT: Please close ALL Chrome windows before running this script!", flush=True)
+        print("(Chrome profile can only be used by one process at a time.)", flush=True)
+        print("Press Enter when ready...", flush=True)
+        input()
         self.create_driver()
         print("""
 ██    ██ ███████ ███████          ██ ██     ██ ████████
