@@ -116,6 +116,40 @@ class AuthVFS:
         # Return the driver instance.
         return driver
 
+    def is_already_logged_in(self, driver):
+        """Check if the page already shows the logged-in state (e.g. 'Start New Booking').
+
+        Uses a very short timeout so we don't block the flow when OTP is required.
+        Returns True if the ensure_login element is found, False otherwise.
+        """
+        ensure_xpath = self.args.get("ensure_login", "")
+        if not ensure_xpath:
+            return False
+        try:
+            timeout = self.args.get("otp", {}).get("login_check_timeout", 4)
+            WebDriverWait(driver, timeout).until(
+                EC.presence_of_element_located((By.XPATH, ensure_xpath))
+            )
+            return True
+        except TimeoutException:
+            return False
+
+    def detect_otp_screen(self, driver):
+        """Check whether the OTP input field is currently visible on the page.
+
+        Uses a short timeout so we detect the screen quickly without long waits.
+        Returns True if the OTP input is present, False otherwise.
+        """
+        otp_xpath = self.args.get("otp_input", "//input[contains(@id, 'mat-input')]")
+        try:
+            timeout = self.args.get("otp", {}).get("screen_check_timeout", 6)
+            WebDriverWait(driver, timeout).until(
+                EC.presence_of_element_located((By.XPATH, otp_xpath))
+            )
+            return True
+        except TimeoutException:
+            return False
+
     def wait_for_otp(self):
         """Fetch OTP via configured method (currently: email IMAP)."""
         otp_config = self.args.get("otp", {})
@@ -220,14 +254,22 @@ class AuthVFS:
                 continue
             driver = login_result
 
-            # OTP step
+            # OTP step — screen-detection based
             if self.args.get("otp", {}).get("enabled", False):
-                otp_code = self.wait_for_otp()
-                if otp_code:
-                    self.enter_otp(otp_code, driver)
+                # First check: did we land directly on the logged-in page?
+                if self.is_already_logged_in(driver):
+                    print("Login successful without OTP, skipping OTP step.", flush=True)
+                # Second check: is the OTP input field visible?
+                elif self.detect_otp_screen(driver):
+                    print("OTP screen detected, waiting for OTP...", flush=True)
+                    otp_code = self.wait_for_otp()
+                    if otp_code:
+                        self.enter_otp(otp_code, driver)
+                    else:
+                        print("Warning: OTP not received, retrying login...", flush=True)
+                        continue
                 else:
-                    print("Warning: OTP not received, retrying login...")
-                    continue
+                    print("No OTP screen detected, proceeding to JWT extraction...", flush=True)
 
             time.sleep(self.args["avrg_delay"])
 
