@@ -85,7 +85,7 @@ def main(params):
         return False
 
     path = os.path.realpath(params)
-    read = open(path, "r")
+    read = open(path, "r", encoding="utf-8")
     params = json.loads(read.read())
     read.close()
 

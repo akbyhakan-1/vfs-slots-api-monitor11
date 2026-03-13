@@ -62,7 +62,7 @@ class PingVFS:
             return False
 
         path = os.path.realpath(self.paths["auth"])
-        read = open(path, "r")
+        read = open(path, "r", encoding="utf-8")
         auth = read.read().replace("\n", " ").strip()
         read.close()
 
@@ -77,7 +77,7 @@ class PingVFS:
 
     def store_output(self, output):
         # Saving the output in output.txt.
-        with open(self.paths["output"], "a") as file_object:
+        with open(self.paths["output"], "a", encoding="utf-8") as file_object:
             file_object.write(output)
 
     def hit_vfs(self, center):
@@ -223,7 +223,7 @@ def main(params):
         return False
 
     path = os.path.realpath(params)
-    read = open(path, "r")
+    read = open(path, "r", encoding="utf-8")
     params = json.loads(read.read())
     read.close()
 

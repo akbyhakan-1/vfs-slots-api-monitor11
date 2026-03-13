@@ -292,7 +292,7 @@ class AuthVFS:
             file_path = os.path.realpath(file_path)
             os.remove(file_path)
 
-        f = open(file_path, "a")
+        f = open(file_path, "a", encoding="utf-8")
 
         if not isinstance(jwt, str) or 10 > len(jwt):
             return False
@@ -336,7 +336,7 @@ class AuthVFS:
                 time.sleep(self.args["refr_delay"])
 
 def main(params):
-    params = open(params, "r")
+    params = open(params, "r", encoding="utf-8")
     params = json.loads(params.read())
     # creating object of the class
     auth = AuthVFS(params, "")
